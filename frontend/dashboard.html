@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard | Sistema de Reservas</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="login-container">
+    <section class="login-card" aria-labelledby="dashboardTitle">
+      <h2 id="dashboardTitle">Panel de control</h2>
+      <p class="subtitle" id="welcomeMessage">Cargando sesión...</p>
+      <button type="button" id="logoutButton">Cerrar sesión</button>
+    </section>
+  </main>
+
+  <script>
+    const SESSION_KEY = 'reservas_session';
+    const session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+
+    if (!session || !session.token || session.expiresAt <= Date.now()) {
+      localStorage.removeItem(SESSION_KEY);
+      window.location.replace('index.html');
+    } else {
+      document.getElementById('welcomeMessage').textContent = `Bienvenido, ${session.user.name}.`;
+      document.getElementById('logoutButton').addEventListener('click', () => {
+        localStorage.removeItem(SESSION_KEY);
+        window.location.replace('index.html');
+      });
+    }
+  </script>
+</body>
+</html>
