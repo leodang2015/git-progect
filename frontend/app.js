@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
     saveJson(LOGIN_STATE_KEY, { attempts: 0, lockedUntil: 0 });
     saveJson(SESSION_KEY, {
       token: createSessionToken(),
-      user: { name: user.name, email: user.email },
+      user: { name: user.name, email: user.email, role: user.role || 'Usuario' },
       expiresAt: Date.now() + (60 * 60 * 1000)
     });
     showMessage('Inicio de sesión exitoso. Redirigiendo...', 'success');
