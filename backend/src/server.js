@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
 
 // Conectar a la base de datos
 connectDB();
@@ -15,6 +16,7 @@ app.use(express.json()); // Middleware integrado para parsear JSON
 
 // Rutas
 app.use('/api/auth', authRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Ruta básica
 app.get('/', (req, res) => {

@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const User = require('./src/models/User');
 require('dotenv').config();
 
-const request = (method, path, data) => {
+const request = (method, path, data, token = null) => {
   return new Promise((resolve, reject) => {
     const postData = data ? JSON.stringify(data) : '';
 
@@ -19,6 +19,9 @@ const request = (method, path, data) => {
         'Content-Length': Buffer.byteLength(postData)
       }
     };
+    if (token) {
+      options.headers['Authorization'] = `Bearer ${token}`;
+    }
 
     const req = http.request(options, (res) => {
       let body = '';
@@ -47,7 +50,7 @@ const runTests = async () => {
   
   // 1. Crear usuario directamente en DB para poder probar el login
   console.log('Creando usuario de prueba directamente en la base de datos...');
-  await User.create({ email: testEmail, password: 'password123' });
+  await User.create({ name: 'Usuario Prueba', email: testEmail, password: 'password123' });
   
   console.log('\n--- INICIANDO PRUEBAS DE ENDPOINTS DE LOGIN ---');
   
@@ -78,6 +81,66 @@ const runTests = async () => {
   console.log(`Status: ${lockoutRes.status}`);
   console.log('Response:', lockoutRes.body);
   
+  console.log('\n--- INICIANDO PRUEBAS DE ENDPOINTS DE REGISTRO ---');
+  
+  const testEmailReg = `new_${Date.now()}@example.com`;
+
+  // 5. Probar registro válido
+  console.log('\n5. Probando registro válido...');
+  const regSuccessRes = await request('POST', '/api/auth/register', { 
+    name: 'Nuevo Usuario', 
+    email: testEmailReg, 
+    password: 'Password123!', 
+    confirmPassword: 'Password123!' 
+  });
+  console.log(`Status: ${regSuccessRes.status}`);
+  console.log('Response:', regSuccessRes.body);
+
+  // 6. Probar registro con correo duplicado
+  console.log('\n6. Probando registro con correo duplicado...');
+  const regDuplicateRes = await request('POST', '/api/auth/register', { 
+    name: 'Otro Usuario', 
+    email: testEmailReg, 
+    password: 'Password123!', 
+    confirmPassword: 'Password123!' 
+  });
+  console.log(`Status: ${regDuplicateRes.status}`);
+  console.log('Response:', regDuplicateRes.body);
+
+  // 7. Probar validación de contraseña
+  console.log('\n7. Probando registro con contraseña débil (sin número ni símbolo)...');
+  const regWeakPassRes = await request('POST', '/api/auth/register', { 
+    name: 'Usuario Débil', 
+    email: `weak_${Date.now()}@example.com`, 
+    password: 'weakpassword', 
+    confirmPassword: 'weakpassword' 
+  });
+  console.log(`Status: ${regWeakPassRes.status}`);
+  console.log('Response:', regWeakPassRes.body);
+
+  console.log('\n--- INICIANDO PRUEBAS DE ENDPOINTS DE DASHBOARD ---');
+  
+  // Extraer token de inicio de sesión exitoso
+  const token = loginSuccessRes.body.token;
+
+  // 8. Probar Dashboard sin token
+  console.log('\n8. Probando Dashboard sin token (esperado 401)...');
+  const dashboardNoTokenRes = await request('GET', '/api/dashboard/stats');
+  console.log(`Status: ${dashboardNoTokenRes.status}`);
+  console.log('Response:', dashboardNoTokenRes.body);
+
+  // 9. Probar Dashboard con token inválido
+  console.log('\n9. Probando Dashboard con token inválido (esperado 401)...');
+  const dashboardInvalidTokenRes = await request('GET', '/api/dashboard/stats', null, 'invalid_token');
+  console.log(`Status: ${dashboardInvalidTokenRes.status}`);
+  console.log('Response:', dashboardInvalidTokenRes.body);
+
+  // 10. Probar Dashboard con token válido
+  console.log('\n10. Probando Dashboard con token válido (esperado 200)...');
+  const dashboardValidRes = await request('GET', '/api/dashboard/stats', null, token);
+  console.log(`Status: ${dashboardValidRes.status}`);
+  console.log('Response:', dashboardValidRes.body);
+
   console.log('\n--- PRUEBAS FINALIZADAS ---');
   
   await mongoose.disconnect();
