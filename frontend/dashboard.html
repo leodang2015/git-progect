@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard | Sistema de Reservas</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dashboard-page">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" id="dashboardSidebar" aria-label="Navegación principal">
+      <a class="dashboard-brand" href="dashboard.html" aria-label="Ir al inicio del dashboard">
+        <span class="brand-mark" aria-hidden="true">SR</span>
+        <span><strong>Reserva</strong><small>Panel operativo</small></span>
+      </a>
+      <nav class="dashboard-nav">
+        <a class="dashboard-nav-link active" href="#overview"><span aria-hidden="true">⌂</span>Resumen</a>
+        <a class="dashboard-nav-link" href="#reservas"><span aria-hidden="true">▣</span>Reservas</a>
+        <a class="dashboard-nav-link" href="#servicios"><span aria-hidden="true">◇</span>Servicios</a>
+        <a class="dashboard-nav-link admin-only" href="#usuarios"><span aria-hidden="true">♧</span>Usuarios</a>
+      </nav>
+      <div class="sidebar-footer">
+        <span class="status-dot"></span><span>Servicio activo</span>
+      </div>
+    </aside>
+
+    <main class="dashboard-main" id="overview">
+      <header class="dashboard-header">
+        <button class="menu-toggle" id="menuToggle" type="button" aria-label="Abrir menú" aria-expanded="false">☰</button>
+        <div>
+          <p class="eyebrow">Vista general</p>
+          <h1>Panel de control</h1>
+        </div>
+        <div class="header-actions">
+          <div class="user-chip">
+            <span class="avatar" id="userInitials">U</span>
+            <span><strong id="userName">Usuario</strong><small id="userRole">Usuario</small></span>
+          </div>
+          <button class="logout-button" id="logoutButton" type="button" title="Cerrar sesión"><span aria-hidden="true">↪</span><span class="logout-label">Salir</span></button>
+        </div>
+      </header>
+
+      <section class="welcome-strip" aria-labelledby="welcomeTitle">
+        <div><p class="eyebrow">Hoy, <span id="currentDate"></span></p><h2 id="welcomeTitle">Buenos días, <span id="welcomeName">usuario</span>.</h2><p>Este es el estado de tu operación en un vistazo.</p></div>
+        <div class="welcome-icon" aria-hidden="true">✦</div>
+      </section>
+
+      <section class="stats-grid" aria-label="Estadísticas principales">
+        <article class="stat-card"><div class="stat-icon teal">▣</div><p>Reservas activas</p><strong>128</strong><span class="trend positive">↑ 12.5% <small>vs. mes anterior</small></span></article>
+        <article class="stat-card"><div class="stat-icon blue">◇</div><p>Servicios disponibles</p><strong>24</strong><span class="trend positive">↑ 4.2% <small>vs. mes anterior</small></span></article>
+        <article class="stat-card"><div class="stat-icon amber">◷</div><p>Reservas pendientes</p><strong>16</strong><span class="trend neutral">En revisión <small>hoy</small></span></article>
+        <article class="stat-card admin-only"><div class="stat-icon coral">♧</div><p>Usuarios registrados</p><strong>342</strong><span class="trend positive">↑ 8.1% <small>vs. mes anterior</small></span></article>
+      </section>
+
+      <section class="dashboard-columns">
+        <article class="panel activity-panel" id="reservas">
+          <div class="panel-heading"><div><p class="eyebrow">Seguimiento</p><h2>Actividad reciente</h2></div><button class="text-button" type="button">Ver todo <span aria-hidden="true">→</span></button></div>
+          <div class="activity-list">
+            <div class="activity-item"><span class="activity-avatar teal">MG</span><div><strong>María González</strong><p>Creó una reserva para Sala Aurora</p></div><time>Hace 8 min</time></div>
+            <div class="activity-item"><span class="activity-avatar blue">JR</span><div><strong>Juan Rodríguez</strong><p>Solicitó el servicio de Catering</p></div><time>Hace 24 min</time></div>
+            <div class="activity-item"><span class="activity-avatar amber">LP</span><div><strong>Laura Pérez</strong><p>Confirmó una reserva pendiente</p></div><time>Hace 1 h</time></div>
+            <div class="activity-item"><span class="activity-avatar coral">AS</span><div><strong>Andrés Silva</strong><p>Actualizó sus datos de perfil</p></div><time>Hace 2 h</time></div>
+          </div>
+        </article>
+        <article class="panel quick-panel" id="servicios">
+          <div class="panel-heading"><div><p class="eyebrow">Accesos</p><h2>Acciones rápidas</h2></div></div>
+          <div class="quick-actions"><button type="button"><span class="quick-icon teal">+</span><span><strong>Nueva reserva</strong><small>Agenda un espacio</small></span><span aria-hidden="true">→</span></button><button type="button"><span class="quick-icon blue">◇</span><span><strong>Explorar servicios</strong><small>Consulta el catálogo</small></span><span aria-hidden="true">→</span></button><button class="admin-only" type="button"><span class="quick-icon coral">♧</span><span><strong>Gestionar usuarios</strong><small>Administra perfiles</small></span><span aria-hidden="true">→</span></button></div>
+        </article>
+      </section>
+      <p class="dashboard-note">Los datos mostrados son una vista previa local del módulo frontend.</p>
+    </main>
+  </div>
+
+  <script>
+    const SESSION_KEY = 'reservas_session';
+    const getSession = () => {
+      try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch (error) { return null; }
+    };
+    const session = getSession();
+    const hasValidSession = session && typeof session.token === 'string' && session.token && Number(session.expiresAt) > Date.now() && session.user;
+
+    if (!hasValidSession) {
+      localStorage.removeItem(SESSION_KEY);
+      window.location.replace('index.html');
+    } else {
+      const user = session.user;
+      const name = String(user.name || 'Usuario').trim();
+      const role = String(user.role || 'Usuario');
+      const isAdmin = ['admin', 'administrador'].includes(role.toLowerCase());
+      const initials = name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+      document.getElementById('userName').textContent = name;
+      document.getElementById('userRole').textContent = role;
+      document.getElementById('welcomeName').textContent = name.split(/\s+/)[0];
+      document.getElementById('userInitials').textContent = initials || 'U';
+      document.getElementById('currentDate').textContent = new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
+      if (!isAdmin) document.querySelectorAll('.admin-only').forEach((element) => element.remove());
+
+      document.getElementById('logoutButton').addEventListener('click', () => {
+        localStorage.removeItem(SESSION_KEY);
+        window.location.replace('index.html');
+      });
+      const sidebar = document.getElementById('dashboardSidebar');
+      const menuToggle = document.getElementById('menuToggle');
+      menuToggle.addEventListener('click', () => {
+        const isOpen = sidebar.classList.toggle('open');
+        menuToggle.setAttribute('aria-expanded', String(isOpen));
+      });
+      window.setInterval(() => {
+        if (Number(session.expiresAt) <= Date.now()) {
+          localStorage.removeItem(SESSION_KEY);
+          window.location.replace('index.html');
+        }
+      }, 30000);
+    }
+  </script>
+</body>
+</html>
