@@ -82,6 +82,58 @@ const login = async (req, res) => {
   }
 };
 
+// @desc    Registrar nuevo usuario
+// @route   POST /api/auth/register
+// @access  Público
+const register = async (req, res) => {
+  try {
+    const { name, email, password, phone } = req.body;
+
+    // Verificar si el usuario ya existe
+    const userExists = await User.findOne({ email });
+
+    if (userExists) {
+      return res.status(400).json({
+        success: false,
+        message: 'El correo electrónico ya está registrado'
+      });
+    }
+
+    // Crear el usuario
+    const user = await User.create({
+      name,
+      email,
+      password,
+      phone
+    });
+
+    if (user) {
+      res.status(201).json({
+        success: true,
+        message: 'Registro exitoso',
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email
+        }
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Datos de usuario inválidos'
+      });
+    }
+
+  } catch (error) {
+    console.error('Error in register:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error en el servidor al intentar registrar usuario'
+    });
+  }
+};
+
 module.exports = {
-  login
+  login,
+  register
 };
