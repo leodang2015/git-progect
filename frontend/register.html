@@ -93,15 +93,8 @@
         </div>
 
         <div class="captcha-container">
-          <label class="captcha-box" for="captchaCheck">
-            <input type="checkbox" id="captchaCheck">
-            <span class="captcha-checkmark" aria-hidden="true"></span>
-            <span class="captcha-label">No soy un robot</span>
-            <span class="captcha-brand">
-              <strong>reCAPTCHA</strong>
-              <small>Privacidad - Condiciones</small>
-            </span>
-          </label>
+          <!-- Google reCAPTCHA v2 Widget con clave de prueba oficial que siempre pasa -->
+          <div class="g-recaptcha" data-sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"></div>
           <span class="error-message" id="captchaError"></span>
         </div>
 
@@ -115,6 +108,7 @@
     </div>
   </div>
 
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
   <script src="register.js"></script>
 </body>
 </html>
