@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', () => {
 	const phoneInput = document.getElementById('phone');
 	const passwordInput = document.getElementById('password');
 	const confirmPasswordInput = document.getElementById('confirmPassword');
-	const captchaCheck = document.getElementById('captchaCheck');
 	const registerButton = document.getElementById('registerBtn');
 	const fields = [nameInput, emailInput, phoneInput, passwordInput, confirmPasswordInput];
 	const USERS_KEY = 'reservas_users';
@@ -70,7 +69,6 @@ document.addEventListener('DOMContentLoaded', () => {
 		formMessage.textContent = '';
 		formMessage.className = 'form-message';
 		fields.forEach((field) => field.classList.remove('invalid'));
-		captchaCheck.classList.remove('invalid');
 		Object.values(errorElements).forEach((element) => { element.textContent = ''; });
 	};
 
@@ -79,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		errorElements[field.id].textContent = message;
 	};
 
-	registerForm.addEventListener('submit', (event) => {
+	registerForm.addEventListener('submit', async (event) => {
 		event.preventDefault();
 		clearFeedback();
 
@@ -130,27 +128,57 @@ document.addEventListener('DOMContentLoaded', () => {
 			isValid = false;
 		}
 
-		if (!captchaCheck.checked) {
-			captchaCheck.classList.add('invalid');
-			errorElements.captcha.textContent = 'Confirma que no eres un robot.';
-			isValid = false;
+		if (typeof grecaptcha !== 'undefined') {
+			const recaptchaResponse = grecaptcha.getResponse();
+			if (recaptchaResponse.length === 0) {
+				errorElements.captcha.textContent = 'Confirma que no eres un robot.';
+				isValid = false;
+			}
 		}
 
 		if (!isValid) return;
 
-		const users = getUsers();
-		if (users.some((user) => user.email.toLowerCase() === email)) {
-			setFieldError(emailInput, 'Este correo ya está registrado.');
-			formMessage.textContent = 'No se pudo completar el registro.';
-			return;
-		}
-
-		users.push({ name, email, phone, password });
-		localStorage.setItem(USERS_KEY, JSON.stringify(users));
-		sessionStorage.setItem('registration_message', 'Registro exitoso. Ahora puedes iniciar sesión.');
-		formMessage.textContent = 'Registro exitoso. Redirigiendo al inicio de sesión...';
-		formMessage.className = 'form-message success';
 		registerButton.disabled = true;
-		window.setTimeout(() => { window.location.href = 'index.html'; }, 500);
+		formMessage.textContent = 'Registrando...';
+		formMessage.className = 'form-message';
+
+		try {
+			const response = await fetch('http://localhost:5000/api/auth/register', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					name,
+					email,
+					phone,
+					password,
+					confirmPassword,
+					termsAccepted: true
+				})
+			});
+
+			const data = await response.json();
+
+			if (response.ok) {
+				sessionStorage.setItem('registration_message', 'Registro exitoso. Ahora puedes iniciar sesión.');
+				formMessage.textContent = 'Registro exitoso. Redirigiendo al inicio de sesión...';
+				formMessage.className = 'form-message success';
+				window.setTimeout(() => { window.location.href = 'index.html'; }, 500);
+			} else {
+				if (data.errores && data.errores.length > 0) {
+					formMessage.textContent = data.errores[0].mensaje || data.mensaje || 'No se pudo completar el registro.';
+				} else {
+					formMessage.textContent = data.message || data.mensaje || 'No se pudo completar el registro.';
+				}
+				formMessage.className = 'form-message error';
+				registerButton.disabled = false;
+			}
+		} catch (error) {
+			console.error('Registration error:', error);
+			formMessage.textContent = 'Error de conexión con el servidor.';
+			formMessage.className = 'form-message error';
+			registerButton.disabled = false;
+		}
 	});
 });

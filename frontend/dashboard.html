@@ -88,29 +88,64 @@
       const role = String(user.role || 'Usuario');
       const isAdmin = ['admin', 'administrador'].includes(role.toLowerCase());
       const initials = name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+      
       document.getElementById('userName').textContent = name;
       document.getElementById('userRole').textContent = role;
       document.getElementById('welcomeName').textContent = name.split(/\s+/)[0];
       document.getElementById('userInitials').textContent = initials || 'U';
       document.getElementById('currentDate').textContent = new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
+      
       if (!isAdmin) document.querySelectorAll('.admin-only').forEach((element) => element.remove());
 
       document.getElementById('logoutButton').addEventListener('click', () => {
         localStorage.removeItem(SESSION_KEY);
         window.location.replace('index.html');
       });
+
       const sidebar = document.getElementById('dashboardSidebar');
       const menuToggle = document.getElementById('menuToggle');
       menuToggle.addEventListener('click', () => {
         const isOpen = sidebar.classList.toggle('open');
         menuToggle.setAttribute('aria-expanded', String(isOpen));
       });
+
+      // Validar expiración local periódicamente
       window.setInterval(() => {
         if (Number(session.expiresAt) <= Date.now()) {
           localStorage.removeItem(SESSION_KEY);
           window.location.replace('index.html');
         }
       }, 30000);
+
+      // Obtener estadísticas del backend
+      fetch('http://localhost:5000/api/dashboard/stats', {
+        headers: {
+          'Authorization': `Bearer ${session.token}`
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          const stats = data.data.stats;
+          // Actualizar UI de estadísticas usando querySelectors basados en el texto o estructura, o simplemente reemplazar el contenido
+          const statCards = document.querySelectorAll('.stat-card strong');
+          if (statCards.length >= 3) {
+             statCards[0].textContent = stats.totalReservations || 0; // Reservas
+             statCards[1].textContent = stats.totalServices || 0; // Servicios
+             statCards[2].textContent = data.data.personalizedInfo?.userReservations || '0'; // Depende de la lógica
+          }
+          if (isAdmin && statCards.length >= 4) {
+             statCards[3].textContent = stats.totalUsers || 0; // Usuarios
+          }
+        } else {
+          // Token inválido o problema
+          if (data.message && data.message.toLowerCase().includes('no autorizado')) {
+            localStorage.removeItem(SESSION_KEY);
+            window.location.replace('index.html');
+          }
+        }
+      })
+      .catch(err => console.error('Error fetching dashboard stats:', err));
     }
   </script>
 </body>
