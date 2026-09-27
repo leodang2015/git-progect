@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const getRemainingLockTime = (lockedUntil) => Math.ceil((lockedUntil - Date.now()) / 60000);
 
-  loginForm.addEventListener('submit', (e) => {
+  loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearErrors();
 
@@ -107,31 +107,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!isValid) return;
 
-    const storedUsers = getJson(USERS_KEY, []);
-    const user = storedUsers.find((storedUser) =>
-      storedUser.email.toLowerCase() === emailValue.toLowerCase()
-      && storedUser.password === passwordValue
-    );
-
-    if (!user) {
-      const attempts = loginState.attempts + 1;
-      const nextState = { attempts, lockedUntil: 0 };
-      if (attempts >= MAX_ATTEMPTS) nextState.lockedUntil = Date.now() + LOCK_TIME_MS;
-      saveJson(LOGIN_STATE_KEY, nextState);
-      showMessage(nextState.lockedUntil
-        ? 'Has superado el número de intentos permitidos. El acceso está bloqueado durante 15 minutos.'
-        : 'El correo o la contraseña son incorrectos.');
-      return;
-    }
-
-    saveJson(LOGIN_STATE_KEY, { attempts: 0, lockedUntil: 0 });
-    saveJson(SESSION_KEY, {
-      token: createSessionToken(),
-      user: { name: user.name, email: user.email, role: user.role || 'Usuario' },
-      expiresAt: Date.now() + (60 * 60 * 1000)
-    });
-    showMessage('Inicio de sesión exitoso. Redirigiendo...', 'success');
     submitButton.disabled = true;
-    window.setTimeout(() => { window.location.href = 'dashboard.html'; }, 300);
+    showMessage('Iniciando sesión...', 'success');
+
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: emailValue,
+          password: passwordValue
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        saveJson(SESSION_KEY, {
+          token: data.token,
+          user: data.user,
+          expiresAt: Date.now() + (60 * 60 * 1000)
+        });
+        showMessage('Inicio de sesión exitoso. Redirigiendo...', 'success');
+        window.setTimeout(() => { window.location.href = 'dashboard.html'; }, 300);
+      } else {
+        if (data.errores && data.errores.length > 0) {
+          showMessage(data.errores[0].mensaje);
+        } else {
+          showMessage(data.message || data.mensaje || 'El correo o la contraseña son incorrectos.');
+        }
+        submitButton.disabled = false;
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      showMessage('Error de conexión con el servidor.');
+      submitButton.disabled = false;
+    }
   });
 });
