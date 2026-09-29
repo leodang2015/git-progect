@@ -28,6 +28,13 @@ const login = async (req, res) => {
       });
     }
 
+    if (user.status === 'inactive') {
+      return res.status(403).json({
+        success: false,
+        message: 'La cuenta está inactiva'
+      });
+    }
+
     // Comprobar si la cuenta está bloqueada
     if (user.isLocked) {
       return res.status(403).json({
