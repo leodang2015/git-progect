@@ -16,7 +16,7 @@
       <nav class="dashboard-nav">
         <a class="dashboard-nav-link active" href="#overview"><span aria-hidden="true">⌂</span>Resumen</a>
         <a class="dashboard-nav-link" href="#reservas"><span aria-hidden="true">▣</span>Reservas</a>
-        <a class="dashboard-nav-link" href="#servicios"><span aria-hidden="true">◇</span>Servicios</a>
+        <a class="dashboard-nav-link" href="#gestion-servicios"><span aria-hidden="true">◇</span>Servicios</a>
         <a class="dashboard-nav-link admin-only" href="#usuarios"><span aria-hidden="true">♧</span>Usuarios</a>
       </nav>
       <div class="sidebar-footer">
@@ -83,6 +83,19 @@
           <div class="empty-users" id="emptyUsers" hidden>No se encontraron usuarios con estos filtros.</div>
         </div>
       </section>
+      <section class="service-management admin-only" id="gestion-servicios" aria-labelledby="servicesTitle">
+        <div class="section-heading">
+          <div><p class="eyebrow">Catálogo</p><h2 id="servicesTitle">Gestión de servicios</h2><p>Administra la oferta disponible para las reservas.</p></div>
+          <button class="primary-action" id="newServiceButton" type="button"><span aria-hidden="true">+</span> Nuevo servicio</button>
+        </div>
+        <div class="service-toolbar">
+          <label class="search-field" for="serviceSearch"><span aria-hidden="true">⌕</span><input id="serviceSearch" type="search" placeholder="Buscar servicio o categoría" autocomplete="off"></label>
+          <select id="serviceStatusFilter" aria-label="Filtrar servicios por estado"><option value="">Todos los estados</option><option value="available">Disponible</option><option value="inactive">Inactivo</option></select>
+        </div>
+        <p class="user-feedback" id="serviceFeedback" role="status"></p>
+        <div class="service-grid" id="serviceGrid"></div>
+        <div class="empty-users" id="emptyServices" hidden>No se encontraron servicios con estos filtros.</div>
+      </section>
       <p class="dashboard-note">Los datos mostrados son una vista previa local del módulo frontend.</p>
     </main>
   </div>
@@ -97,6 +110,19 @@
       <div class="form-row"><label>Rol<select id="userRoleInput" name="role"><option value="user">Usuario</option><option value="admin">Administrador</option></select></label><label>Estado<select id="userStatusInput" name="status"><option value="active">Activo</option><option value="inactive">Inactivo</option><option value="pending">Pendiente</option></select></label></div>
       <p class="modal-error" id="userFormError" role="alert"></p>
       <div class="modal-actions"><button class="secondary-action" id="cancelUserButton" type="button">Cancelar</button><button class="primary-action" type="submit">Guardar usuario</button></div>
+    </form>
+  </div>
+  <div class="modal-backdrop" id="serviceModal" hidden>
+    <form class="user-modal" id="serviceForm">
+      <div class="modal-heading"><div><p class="eyebrow">Catálogo</p><h2 id="serviceModalTitle">Nuevo servicio</h2></div><button class="icon-button" id="closeServiceModal" type="button" aria-label="Cerrar">×</button></div>
+      <input id="serviceId" type="hidden">
+      <label>Nombre del servicio<input id="serviceNameInput" required></label>
+      <label>Descripción<textarea id="serviceDescriptionInput" rows="3" required></textarea></label>
+      <div class="form-row"><label>Precio<input id="servicePriceInput" type="number" min="0" step="100" required></label><label>Duración (minutos)<input id="serviceDurationInput" type="number" min="1" required></label></div>
+      <div class="form-row"><label>Categoría<input id="serviceCategoryInput" required></label><label>Estado<select id="serviceStatusInput"><option value="available">Disponible</option><option value="inactive">Inactivo</option></select></label></div>
+      <label>Imagen opcional (URL)<input id="serviceImageInput" type="url" placeholder="https://..."></label>
+      <p class="modal-error" id="serviceFormError" role="alert"></p>
+      <div class="modal-actions"><button class="secondary-action" id="cancelServiceButton" type="button">Cancelar</button><button class="primary-action" type="submit">Guardar servicio</button></div>
     </form>
   </div>
 
@@ -176,6 +202,7 @@
       })
       .catch(err => console.error('Error fetching dashboard stats:', err));
 
+      if (isAdmin) {
       const USERS_KEY = 'reservas_users';
       const userElements = {
         body: document.getElementById('usersTableBody'), search: document.getElementById('userSearch'),
@@ -235,6 +262,31 @@
         localStorage.setItem(USERS_KEY, JSON.stringify(storedUsers)); closeUserModal(); await loadUsers();
       });
       if (isAdmin) loadUsers();
+      const SERVICES_KEY = 'reservas_services';
+      const defaultServices = [
+        { id: 'service-1', name: 'Corte de cabello', description: 'Corte personalizado y acabado profesional.', price: 30000, duration: 45, category: 'Belleza', status: 'available', image: '' },
+        { id: 'service-2', name: 'Sala Aurora', description: 'Espacio equipado para reuniones y eventos.', price: 120000, duration: 120, category: 'Espacios', status: 'available', image: '' },
+        { id: 'service-3', name: 'Catering ejecutivo', description: 'Menú completo para reuniones de trabajo.', price: 85000, duration: 60, category: 'Alimentos', status: 'inactive', image: '' }
+      ];
+      const storedServices = (() => { try { const value = JSON.parse(localStorage.getItem(SERVICES_KEY) || 'null'); return Array.isArray(value) ? value : defaultServices; } catch (error) { return defaultServices; } })();
+      if (!localStorage.getItem(SERVICES_KEY)) localStorage.setItem(SERVICES_KEY, JSON.stringify(storedServices));
+      const serviceElements = { grid: document.getElementById('serviceGrid'), search: document.getElementById('serviceSearch'), status: document.getElementById('serviceStatusFilter'), feedback: document.getElementById('serviceFeedback'), empty: document.getElementById('emptyServices'), modal: document.getElementById('serviceModal'), form: document.getElementById('serviceForm'), error: document.getElementById('serviceFormError'), id: document.getElementById('serviceId'), name: document.getElementById('serviceNameInput'), description: document.getElementById('serviceDescriptionInput'), price: document.getElementById('servicePriceInput'), duration: document.getElementById('serviceDurationInput'), category: document.getElementById('serviceCategoryInput'), serviceStatus: document.getElementById('serviceStatusInput'), image: document.getElementById('serviceImageInput'), title: document.getElementById('serviceModalTitle') };
+      let services = [];
+      const serviceStatusLabels = { available: 'Disponible', inactive: 'Inactivo' };
+      const formatPrice = (value) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value);
+      const renderServices = () => { serviceElements.grid.innerHTML = services.map((service) => `<article class="service-card"><div class="service-image">${service.image ? `<img src="${escapeHtml(service.image)}" alt="${escapeHtml(service.name)}">` : '<span aria-hidden="true">◇</span>'}</div><div class="service-card-content"><span class="service-category">${escapeHtml(service.category)}</span><h3>${escapeHtml(service.name)}</h3><p>${escapeHtml(service.description)}</p><div class="service-details"><span>Duración: <strong>${service.duration} min</strong></span><span>Precio: <strong>${formatPrice(service.price)}</strong></span></div><div class="service-card-footer"><span class="status-badge ${service.status}">${serviceStatusLabels[service.status]}</span><div class="row-actions"><button class="row-action" data-edit-service="${service.id}" type="button">Editar</button><button class="row-action danger" data-delete-service="${service.id}" type="button">Eliminar</button></div></div></div></article>`).join(''); serviceElements.empty.hidden = services.length > 0; };
+      const loadServices = () => { const search = serviceElements.search.value.toLowerCase(); services = storedServices.filter((service) => (!search || `${service.name} ${service.category}`.toLowerCase().includes(search)) && (!serviceElements.status.value || service.status === serviceElements.status.value)); renderServices(); serviceElements.feedback.textContent = `${services.length} servicio(s) encontrado(s)`; };
+      const openServiceModal = (service) => { serviceElements.form.reset(); serviceElements.error.textContent = ''; serviceElements.id.value = service?.id || ''; serviceElements.title.textContent = service ? 'Editar servicio' : 'Nuevo servicio'; serviceElements.name.value = service?.name || ''; serviceElements.description.value = service?.description || ''; serviceElements.price.value = service?.price || ''; serviceElements.duration.value = service?.duration || ''; serviceElements.category.value = service?.category || ''; serviceElements.serviceStatus.value = service?.status || 'available'; serviceElements.image.value = service?.image || ''; serviceElements.modal.hidden = false; serviceElements.name.focus(); };
+      const closeServiceModal = () => { serviceElements.modal.hidden = true; };
+      document.getElementById('newServiceButton').addEventListener('click', () => openServiceModal());
+      document.getElementById('closeServiceModal').addEventListener('click', closeServiceModal);
+      document.getElementById('cancelServiceButton').addEventListener('click', closeServiceModal);
+      serviceElements.modal.addEventListener('click', (event) => { if (event.target === serviceElements.modal) closeServiceModal(); });
+      [serviceElements.search, serviceElements.status].forEach((element) => element.addEventListener('input', loadServices));
+      serviceElements.grid.addEventListener('click', (event) => { const editId = event.target.dataset.editService; const deleteId = event.target.dataset.deleteService; if (editId) openServiceModal(storedServices.find((service) => service.id === editId)); if (deleteId && window.confirm('¿Quieres eliminar este servicio? Esta acción no se puede deshacer.')) { const index = storedServices.findIndex((service) => service.id === deleteId); if (index >= 0) { storedServices.splice(index, 1); localStorage.setItem(SERVICES_KEY, JSON.stringify(storedServices)); loadServices(); } } });
+      serviceElements.form.addEventListener('submit', (event) => { event.preventDefault(); serviceElements.error.textContent = ''; const payload = { name: serviceElements.name.value.trim(), description: serviceElements.description.value.trim(), price: Number(serviceElements.price.value), duration: Number(serviceElements.duration.value), category: serviceElements.category.value.trim(), status: serviceElements.serviceStatus.value, image: serviceElements.image.value.trim() }; const serviceId = serviceElements.id.value; if (serviceId) Object.assign(storedServices.find((service) => service.id === serviceId), payload); else storedServices.push({ ...payload, id: `service-${Date.now()}` }); localStorage.setItem(SERVICES_KEY, JSON.stringify(storedServices)); closeServiceModal(); loadServices(); });
+      loadServices();
+      }
     }
   </script>
 </body>
