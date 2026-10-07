@@ -387,6 +387,7 @@ button:active {
 .text-button { width: auto; margin: 0; padding: 4px 0; background: none; color: var(--dashboard-teal); font-size: 11px; }
 .text-button:hover { background: none; color: #075f5a; box-shadow: none; }
 .activity-list { display: grid; }
+.activity-empty { padding: 12px 0; border-top: 1px solid #edf1f1; color: var(--dashboard-muted); font-size: 11px; }
 .activity-item { display: flex; align-items: center; gap: 11px; padding: 12px 0; border-top: 1px solid #edf1f1; }
 .activity-avatar { display: grid; place-items: center; width: 31px; height: 31px; flex: 0 0 31px; border-radius: 50%; font-size: 9px; font-weight: 800; }
 .activity-item strong { display: block; font-size: 11px; }

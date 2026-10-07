@@ -46,21 +46,16 @@
       </section>
 
       <section class="stats-grid" aria-label="Estadísticas principales">
-        <article class="stat-card"><div class="stat-icon teal">▣</div><p>Reservas activas</p><strong>128</strong><span class="trend positive">↑ 12.5% <small>vs. mes anterior</small></span></article>
-        <article class="stat-card"><div class="stat-icon blue">◇</div><p>Servicios disponibles</p><strong>24</strong><span class="trend positive">↑ 4.2% <small>vs. mes anterior</small></span></article>
-        <article class="stat-card"><div class="stat-icon amber">◷</div><p>Reservas pendientes</p><strong>16</strong><span class="trend neutral">En revisión <small>hoy</small></span></article>
-        <article class="stat-card admin-only"><div class="stat-icon coral">♧</div><p>Usuarios registrados</p><strong>342</strong><span class="trend positive">↑ 8.1% <small>vs. mes anterior</small></span></article>
+        <article class="stat-card"><div class="stat-icon teal">▣</div><p>Reservas activas</p><strong>0</strong><span class="trend neutral">En curso <small>pendientes o confirmadas</small></span></article>
+        <article class="stat-card"><div class="stat-icon blue">◇</div><p>Servicios disponibles</p><strong>0</strong><span class="trend neutral">En catálogo <small>servicios activos</small></span></article>
+        <article class="stat-card"><div class="stat-icon amber">◷</div><p>Reservas pendientes</p><strong>0</strong><span class="trend neutral">Requieren atención <small>por confirmar</small></span></article>
+        <article class="stat-card admin-only"><div class="stat-icon coral">♧</div><p>Usuarios registrados</p><strong>0</strong><span class="trend neutral">Perfiles <small>registrados</small></span></article>
       </section>
 
       <section class="dashboard-columns">
         <article class="panel activity-panel" id="reservas">
           <div class="panel-heading"><div><p class="eyebrow">Seguimiento</p><h2>Actividad reciente</h2></div><button class="text-button" type="button">Ver todo <span aria-hidden="true">→</span></button></div>
-          <div class="activity-list">
-            <div class="activity-item"><span class="activity-avatar teal">MG</span><div><strong>María González</strong><p>Creó una reserva para Sala Aurora</p></div><time>Hace 8 min</time></div>
-            <div class="activity-item"><span class="activity-avatar blue">JR</span><div><strong>Juan Rodríguez</strong><p>Solicitó el servicio de Catering</p></div><time>Hace 24 min</time></div>
-            <div class="activity-item"><span class="activity-avatar amber">LP</span><div><strong>Laura Pérez</strong><p>Confirmó una reserva pendiente</p></div><time>Hace 1 h</time></div>
-            <div class="activity-item"><span class="activity-avatar coral">AS</span><div><strong>Andrés Silva</strong><p>Actualizó sus datos de perfil</p></div><time>Hace 2 h</time></div>
-          </div>
+          <div class="activity-list" aria-live="polite"><p class="activity-empty">Cargando actividad...</p></div>
         </article>
         <article class="panel quick-panel" id="servicios">
           <div class="panel-heading"><div><p class="eyebrow">Accesos</p><h2>Acciones rápidas</h2></div></div>
@@ -96,7 +91,7 @@
         <div class="service-grid" id="serviceGrid"></div>
         <div class="empty-users" id="emptyServices" hidden>No se encontraron servicios con estos filtros.</div>
       </section>
-      <p class="dashboard-note">Los datos mostrados son una vista previa local del módulo frontend.</p>
+      <p class="dashboard-note">La actividad y las estadísticas se cargan desde la base de datos.</p>
     </main>
   </div>
 
@@ -172,7 +167,56 @@
         }
       }, 30000);
 
-      // Obtener estadísticas del backend
+      // Obtener estadísticas y actividad del backend
+      const activityList = document.querySelector('.activity-list');
+      const activityColors = ['teal', 'blue', 'amber', 'coral'];
+      const formatRelativeTime = (value) => {
+        const createdAt = new Date(value);
+        if (Number.isNaN(createdAt.getTime())) return '';
+        const minutes = Math.floor(Math.max(0, Date.now() - createdAt.getTime()) / 60000);
+        if (minutes < 1) return 'Ahora';
+        if (minutes < 60) return `Hace ${minutes} min`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `Hace ${hours} h`;
+        return `Hace ${Math.floor(hours / 24)} d`;
+      };
+      const renderRecentActivities = (activities) => {
+        activityList.replaceChildren();
+        if (!activities.length) {
+          const emptyMessage = document.createElement('p');
+          emptyMessage.className = 'activity-empty';
+          emptyMessage.textContent = 'Todavía no hay actividad registrada.';
+          activityList.append(emptyMessage);
+          return;
+        }
+
+        activities.forEach((activity, index) => {
+          const userName = activity.user?.name || 'Usuario no disponible';
+          const initials = userName.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+          const item = document.createElement('div');
+          item.className = 'activity-item';
+          const avatar = document.createElement('span');
+          avatar.className = `activity-avatar ${activityColors[index % activityColors.length]}`;
+          avatar.textContent = initials || 'U';
+          const details = document.createElement('div');
+          const name = document.createElement('strong');
+          name.textContent = userName;
+          const description = document.createElement('p');
+          description.textContent = activity.description || 'Actividad registrada';
+          details.append(name, description);
+          item.append(avatar, details);
+
+          const timeLabel = formatRelativeTime(activity.createdAt);
+          if (timeLabel) {
+            const time = document.createElement('time');
+            time.dateTime = activity.createdAt;
+            time.textContent = timeLabel;
+            item.append(time);
+          }
+          activityList.append(item);
+        });
+      };
+
       fetch('http://localhost:5000/api/dashboard/stats', {
         headers: {
           'Authorization': `Bearer ${session.token}`
@@ -182,12 +226,13 @@
       .then(data => {
         if (data.success) {
           const stats = data.data.stats;
+          renderRecentActivities(data.data.recentActivities || []);
           // Actualizar UI de estadísticas usando querySelectors basados en el texto o estructura, o simplemente reemplazar el contenido
           const statCards = document.querySelectorAll('.stat-card strong');
           if (statCards.length >= 3) {
-             statCards[0].textContent = stats.totalReservations || 0; // Reservas
+             statCards[0].textContent = stats.activeReservations || 0; // Reservas activas
              statCards[1].textContent = stats.totalServices || 0; // Servicios
-             statCards[2].textContent = data.data.personalizedInfo?.userReservations || '0'; // Depende de la lógica
+             statCards[2].textContent = stats.pendingReservations || 0; // Reservas pendientes
           }
           if (isAdmin && statCards.length >= 4) {
              statCards[3].textContent = stats.totalUsers || 0; // Usuarios
