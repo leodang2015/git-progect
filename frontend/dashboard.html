@@ -248,7 +248,6 @@
       .catch(err => console.error('Error fetching dashboard stats:', err));
 
       if (isAdmin) {
-      const USERS_KEY = 'reservas_users';
       const userElements = {
         body: document.getElementById('usersTableBody'), search: document.getElementById('userSearch'),
         role: document.getElementById('roleFilter'), status: document.getElementById('statusFilter'),
@@ -257,79 +256,194 @@
         name: document.getElementById('userNameInput'), email: document.getElementById('userEmailInput'), password: document.getElementById('userPasswordInput'),
         userRole: document.getElementById('userRoleInput'), userStatus: document.getElementById('userStatusInput'), title: document.getElementById('userModalTitle')
       };
-      const storedUsers = (() => { try { return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); } catch (error) { return []; } })();
-      if (!storedUsers.length && session.user) {
-        storedUsers.push({ id: session.user.id || `local-${Date.now()}`, name: session.user.name || 'Usuario demo', email: session.user.email || 'usuario@ejemplo.com', role: session.user.role || 'user', status: session.user.status || 'active', createdAt: new Date().toISOString() });
-        localStorage.setItem(USERS_KEY, JSON.stringify(storedUsers));
-      }
+      
       let users = [];
       const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
       const statusLabels = { active: 'Activo', inactive: 'Inactivo', pending: 'Pendiente' };
       const roleLabels = { admin: 'Administrador', user: 'Usuario' };
       const formatDate = (value) => new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value));
-      const requestUsers = async (options = {}) => {
-        const search = String(options.search || '').toLowerCase();
-        return storedUsers.filter((user) => (!search || `${user.name} ${user.email}`.toLowerCase().includes(search)) && (!options.role || user.role === options.role) && (!options.status || user.status === options.status));
-      };
+      
       const renderUsers = () => {
         userElements.body.innerHTML = users.map((user) => `<tr><td><strong>${escapeHtml(user.name)}</strong></td><td>${escapeHtml(user.email)}</td><td>${roleLabels[user.role] || user.role}</td><td><span class="status-badge ${user.status}">${statusLabels[user.status] || user.status}</span></td><td>${formatDate(user.createdAt)}</td><td><div class="row-actions"><button class="row-action" data-edit="${user.id}" type="button" title="Editar usuario">Editar</button><button class="row-action danger" data-delete="${user.id}" type="button" title="Eliminar usuario">Eliminar</button></div></td></tr>`).join('');
         userElements.empty.hidden = users.length > 0;
       };
+
       const loadUsers = async () => {
         userElements.feedback.textContent = 'Cargando usuarios...';
-        try { users = await requestUsers({ search: userElements.search.value, role: userElements.role.value, status: userElements.status.value }); renderUsers(); userElements.feedback.textContent = `${users.length} usuario(s) encontrado(s)`; }
-        catch (error) { userElements.feedback.textContent = error.message; }
+        try {
+          const queryParams = new URLSearchParams();
+          if (userElements.search.value) queryParams.append('q', userElements.search.value);
+          if (userElements.role.value) queryParams.append('role', userElements.role.value);
+          if (userElements.status.value) queryParams.append('status', userElements.status.value);
+          
+          const res = await fetch(`http://localhost:5000/api/users?${queryParams.toString()}`, {
+            headers: { 'Authorization': `Bearer ${session.token}` }
+          });
+          const data = await res.json();
+          if (data.success) {
+            users = data.data;
+            renderUsers();
+            userElements.feedback.textContent = `${data.pagination.total} usuario(s) encontrado(s)`;
+          } else {
+            userElements.feedback.textContent = data.message || 'Error cargando usuarios';
+          }
+        } catch (error) { userElements.feedback.textContent = 'Error de conexión'; }
       };
+
       const openUserModal = (user) => { userElements.form.reset(); userElements.formError.textContent = ''; userElements.id.value = user?.id || ''; userElements.title.textContent = user ? 'Editar usuario' : 'Nuevo usuario'; userElements.name.value = user?.name || ''; userElements.email.value = user?.email || ''; userElements.userRole.value = user?.role || 'user'; userElements.userStatus.value = user?.status || 'active'; userElements.password.required = !user; userElements.modal.hidden = false; userElements.name.focus(); };
       const closeUserModal = () => { userElements.modal.hidden = true; };
       document.getElementById('newUserButton').addEventListener('click', () => openUserModal());
       document.getElementById('closeUserModal').addEventListener('click', closeUserModal);
       document.getElementById('cancelUserButton').addEventListener('click', closeUserModal);
       userElements.modal.addEventListener('click', (event) => { if (event.target === userElements.modal) closeUserModal(); });
-      [userElements.search, userElements.role, userElements.status].forEach((element) => element.addEventListener('input', loadUsers));
+      [userElements.search, userElements.role, userElements.status].forEach((element) => element.addEventListener('input', () => { clearTimeout(element.timeoutId); element.timeoutId = setTimeout(loadUsers, 300); }));
+      
       userElements.body.addEventListener('click', async (event) => {
         const editId = event.target.dataset.edit; const deleteId = event.target.dataset.delete;
         if (editId) openUserModal(users.find((user) => user.id === editId));
         if (deleteId && window.confirm('¿Quieres eliminar este usuario? Esta acción no se puede deshacer.')) {
-          const userIndex = storedUsers.findIndex((user) => user.id === deleteId);
-          if (userIndex >= 0) { storedUsers.splice(userIndex, 1); localStorage.setItem(USERS_KEY, JSON.stringify(storedUsers)); await loadUsers(); }
+          try {
+            const res = await fetch(`http://localhost:5000/api/users/${deleteId}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${session.token}` }
+            });
+            const data = await res.json();
+            if (data.success) {
+              await loadUsers();
+            } else {
+              alert(data.message || 'Error al eliminar usuario');
+            }
+          } catch (e) { alert('Error de red'); }
         }
       });
+      
       userElements.form.addEventListener('submit', async (event) => {
-        event.preventDefault(); userElements.formError.textContent = '';
+        event.preventDefault(); userElements.formError.textContent = 'Guardando...';
         const payload = { name: userElements.name.value.trim(), email: userElements.email.value.trim(), role: userElements.userRole.value, status: userElements.userStatus.value };
         if (userElements.password.value) payload.password = userElements.password.value;
-        const duplicate = storedUsers.some((user) => user.email.toLowerCase() === payload.email.toLowerCase() && user.id !== userElements.id.value);
-        if (duplicate) { userElements.formError.textContent = 'El correo electrónico ya está registrado.'; return; }
         const userId = userElements.id.value;
-        if (userId) { const user = storedUsers.find((item) => item.id === userId); Object.assign(user, payload); if (!userElements.password.value) delete user.password; }
-        else { storedUsers.push({ ...payload, id: `local-${Date.now()}`, createdAt: new Date().toISOString() }); }
-        localStorage.setItem(USERS_KEY, JSON.stringify(storedUsers)); closeUserModal(); await loadUsers();
+        
+        try {
+          const res = await fetch(`http://localhost:5000/api/users${userId ? `/${userId}` : ''}`, {
+            method: userId ? 'PUT' : 'POST',
+            headers: { 'Authorization': `Bearer ${session.token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json();
+          if (data.success) {
+            closeUserModal();
+            await loadUsers();
+          } else {
+            userElements.formError.textContent = data.message || 'Error al guardar usuario';
+          }
+        } catch (e) { userElements.formError.textContent = 'Error de red'; }
       });
       if (isAdmin) loadUsers();
-      const SERVICES_KEY = 'reservas_services';
-      const defaultServices = [
-        { id: 'service-1', name: 'Corte de cabello', description: 'Corte personalizado y acabado profesional.', price: 30000, duration: 45, category: 'Belleza', status: 'available', image: '' },
-        { id: 'service-2', name: 'Sala Aurora', description: 'Espacio equipado para reuniones y eventos.', price: 120000, duration: 120, category: 'Espacios', status: 'available', image: '' },
-        { id: 'service-3', name: 'Catering ejecutivo', description: 'Menú completo para reuniones de trabajo.', price: 85000, duration: 60, category: 'Alimentos', status: 'inactive', image: '' }
-      ];
-      const storedServices = (() => { try { const value = JSON.parse(localStorage.getItem(SERVICES_KEY) || 'null'); return Array.isArray(value) ? value : defaultServices; } catch (error) { return defaultServices; } })();
-      if (!localStorage.getItem(SERVICES_KEY)) localStorage.setItem(SERVICES_KEY, JSON.stringify(storedServices));
+
       const serviceElements = { grid: document.getElementById('serviceGrid'), search: document.getElementById('serviceSearch'), status: document.getElementById('serviceStatusFilter'), feedback: document.getElementById('serviceFeedback'), empty: document.getElementById('emptyServices'), modal: document.getElementById('serviceModal'), form: document.getElementById('serviceForm'), error: document.getElementById('serviceFormError'), id: document.getElementById('serviceId'), name: document.getElementById('serviceNameInput'), description: document.getElementById('serviceDescriptionInput'), price: document.getElementById('servicePriceInput'), duration: document.getElementById('serviceDurationInput'), category: document.getElementById('serviceCategoryInput'), serviceStatus: document.getElementById('serviceStatusInput'), image: document.getElementById('serviceImageInput'), title: document.getElementById('serviceModalTitle') };
       let services = [];
       const serviceStatusLabels = { available: 'Disponible', inactive: 'Inactivo' };
       const formatPrice = (value) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value);
-      const renderServices = () => { serviceElements.grid.innerHTML = services.map((service) => `<article class="service-card"><div class="service-image">${service.image ? `<img src="${escapeHtml(service.image)}" alt="${escapeHtml(service.name)}">` : '<span aria-hidden="true">◇</span>'}</div><div class="service-card-content"><span class="service-category">${escapeHtml(service.category)}</span><h3>${escapeHtml(service.name)}</h3><p>${escapeHtml(service.description)}</p><div class="service-details"><span>Duración: <strong>${service.duration} min</strong></span><span>Precio: <strong>${formatPrice(service.price)}</strong></span></div><div class="service-card-footer"><span class="status-badge ${service.status}">${serviceStatusLabels[service.status]}</span><div class="row-actions"><button class="row-action" data-edit-service="${service.id}" type="button">Editar</button><button class="row-action danger" data-delete-service="${service.id}" type="button">Eliminar</button></div></div></div></article>`).join(''); serviceElements.empty.hidden = services.length > 0; };
-      const loadServices = () => { const search = serviceElements.search.value.toLowerCase(); services = storedServices.filter((service) => (!search || `${service.name} ${service.category}`.toLowerCase().includes(search)) && (!serviceElements.status.value || service.status === serviceElements.status.value)); renderServices(); serviceElements.feedback.textContent = `${services.length} servicio(s) encontrado(s)`; };
-      const openServiceModal = (service) => { serviceElements.form.reset(); serviceElements.error.textContent = ''; serviceElements.id.value = service?.id || ''; serviceElements.title.textContent = service ? 'Editar servicio' : 'Nuevo servicio'; serviceElements.name.value = service?.name || ''; serviceElements.description.value = service?.description || ''; serviceElements.price.value = service?.price || ''; serviceElements.duration.value = service?.duration || ''; serviceElements.category.value = service?.category || ''; serviceElements.serviceStatus.value = service?.status || 'available'; serviceElements.image.value = service?.image || ''; serviceElements.modal.hidden = false; serviceElements.name.focus(); };
+      
+      const renderServices = () => { 
+        serviceElements.grid.innerHTML = services.map((service) => {
+          const status = service.isActive ? 'available' : 'inactive';
+          return `<article class="service-card"><div class="service-image">${service.image ? `<img src="${escapeHtml(service.image)}" alt="${escapeHtml(service.name)}">` : '<span aria-hidden="true">◇</span>'}</div><div class="service-card-content"><span class="service-category">${escapeHtml(service.category)}</span><h3>${escapeHtml(service.name)}</h3><p>${escapeHtml(service.description)}</p><div class="service-details"><span>Duración: <strong>${service.duration} min</strong></span><span>Precio: <strong>${formatPrice(service.price)}</strong></span></div><div class="service-card-footer"><span class="status-badge ${status}">${serviceStatusLabels[status]}</span><div class="row-actions"><button class="row-action" data-edit-service="${service.id}" type="button">Editar</button><button class="row-action danger" data-delete-service="${service.id}" type="button">Eliminar</button></div></div></div></article>`;
+        }).join(''); 
+        serviceElements.empty.hidden = services.length > 0; 
+      };
+
+      const loadServices = async () => { 
+        serviceElements.feedback.textContent = 'Cargando servicios...';
+        try {
+          const queryParams = new URLSearchParams();
+          if (serviceElements.search.value) queryParams.append('q', serviceElements.search.value);
+          if (serviceElements.status.value === 'available') queryParams.append('isActive', 'true');
+          if (serviceElements.status.value === 'inactive') queryParams.append('isActive', 'false');
+          
+          const res = await fetch(`http://localhost:5000/api/services?${queryParams.toString()}`, {
+            headers: { 'Authorization': `Bearer ${session.token}` }
+          });
+          const data = await res.json();
+          if (data.success) {
+            services = data.data;
+            renderServices();
+            serviceElements.feedback.textContent = `${data.pagination.total} servicio(s) encontrado(s)`;
+          } else {
+            serviceElements.feedback.textContent = data.message || 'Error cargando servicios';
+          }
+        } catch (error) { serviceElements.feedback.textContent = 'Error de red'; }
+      };
+
+      const openServiceModal = (service) => { 
+        serviceElements.form.reset(); serviceElements.error.textContent = ''; 
+        serviceElements.id.value = service?.id || ''; 
+        serviceElements.title.textContent = service ? 'Editar servicio' : 'Nuevo servicio'; 
+        serviceElements.name.value = service?.name || ''; 
+        serviceElements.description.value = service?.description || ''; 
+        serviceElements.price.value = service?.price || ''; 
+        serviceElements.duration.value = service?.duration || ''; 
+        serviceElements.category.value = service?.category || ''; 
+        serviceElements.serviceStatus.value = service ? (service.isActive ? 'available' : 'inactive') : 'available'; 
+        serviceElements.image.value = service?.image || ''; 
+        serviceElements.modal.hidden = false; serviceElements.name.focus(); 
+      };
+      
       const closeServiceModal = () => { serviceElements.modal.hidden = true; };
       document.getElementById('newServiceButton').addEventListener('click', () => openServiceModal());
       document.getElementById('closeServiceModal').addEventListener('click', closeServiceModal);
       document.getElementById('cancelServiceButton').addEventListener('click', closeServiceModal);
       serviceElements.modal.addEventListener('click', (event) => { if (event.target === serviceElements.modal) closeServiceModal(); });
-      [serviceElements.search, serviceElements.status].forEach((element) => element.addEventListener('input', loadServices));
-      serviceElements.grid.addEventListener('click', (event) => { const editId = event.target.dataset.editService; const deleteId = event.target.dataset.deleteService; if (editId) openServiceModal(storedServices.find((service) => service.id === editId)); if (deleteId && window.confirm('¿Quieres eliminar este servicio? Esta acción no se puede deshacer.')) { const index = storedServices.findIndex((service) => service.id === deleteId); if (index >= 0) { storedServices.splice(index, 1); localStorage.setItem(SERVICES_KEY, JSON.stringify(storedServices)); loadServices(); } } });
-      serviceElements.form.addEventListener('submit', (event) => { event.preventDefault(); serviceElements.error.textContent = ''; const payload = { name: serviceElements.name.value.trim(), description: serviceElements.description.value.trim(), price: Number(serviceElements.price.value), duration: Number(serviceElements.duration.value), category: serviceElements.category.value.trim(), status: serviceElements.serviceStatus.value, image: serviceElements.image.value.trim() }; const serviceId = serviceElements.id.value; if (serviceId) Object.assign(storedServices.find((service) => service.id === serviceId), payload); else storedServices.push({ ...payload, id: `service-${Date.now()}` }); localStorage.setItem(SERVICES_KEY, JSON.stringify(storedServices)); closeServiceModal(); loadServices(); });
+      [serviceElements.search, serviceElements.status].forEach((element) => element.addEventListener('input', () => { clearTimeout(element.timeoutId); element.timeoutId = setTimeout(loadServices, 300); }));
+      
+      serviceElements.grid.addEventListener('click', async (event) => { 
+        const editId = event.target.dataset.editService; 
+        const deleteId = event.target.dataset.deleteService; 
+        if (editId) openServiceModal(services.find((service) => service.id === editId)); 
+        if (deleteId && window.confirm('¿Quieres eliminar este servicio? Esta acción no se puede deshacer.')) { 
+          try {
+            const res = await fetch(`http://localhost:5000/api/services/${deleteId}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${session.token}` }
+            });
+            const data = await res.json();
+            if (data.success) {
+              await loadServices();
+            } else {
+              alert(data.message || 'Error al eliminar servicio');
+            }
+          } catch (e) { alert('Error de red'); }
+        } 
+      });
+      
+      serviceElements.form.addEventListener('submit', async (event) => { 
+        event.preventDefault(); serviceElements.error.textContent = 'Guardando...'; 
+        const payload = { 
+          name: serviceElements.name.value.trim(), 
+          description: serviceElements.description.value.trim(), 
+          price: Number(serviceElements.price.value), 
+          duration: Number(serviceElements.duration.value), 
+          category: serviceElements.category.value.trim(), 
+          isActive: serviceElements.serviceStatus.value === 'available', 
+          image: serviceElements.image.value.trim() 
+        }; 
+        const serviceId = serviceElements.id.value; 
+        
+        try {
+          const res = await fetch(`http://localhost:5000/api/services${serviceId ? `/${serviceId}` : ''}`, {
+            method: serviceId ? 'PUT' : 'POST',
+            headers: { 'Authorization': `Bearer ${session.token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json();
+          if (data.success) {
+            closeServiceModal();
+            await loadServices();
+          } else {
+            serviceElements.error.textContent = data.message || 'Error al guardar servicio';
+          }
+        } catch (e) { serviceElements.error.textContent = 'Error de red'; }
+      });
       loadServices();
       }
     }
