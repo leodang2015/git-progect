@@ -67,8 +67,37 @@
           <div class="quick-actions"><button type="button"><span class="quick-icon teal">+</span><span><strong>Nueva reserva</strong><small>Agenda un espacio</small></span><span aria-hidden="true">→</span></button><button type="button"><span class="quick-icon blue">◇</span><span><strong>Explorar servicios</strong><small>Consulta el catálogo</small></span><span aria-hidden="true">→</span></button><button class="admin-only" type="button"><span class="quick-icon coral">♧</span><span><strong>Gestionar usuarios</strong><small>Administra perfiles</small></span><span aria-hidden="true">→</span></button></div>
         </article>
       </section>
+      <section class="user-management admin-only" id="usuarios" aria-labelledby="usersTitle">
+        <div class="section-heading">
+          <div><p class="eyebrow">Directorio</p><h2 id="usersTitle">Gestión de usuarios</h2><p>Administra accesos, roles y estados de las cuentas.</p></div>
+          <button class="primary-action" id="newUserButton" type="button"><span aria-hidden="true">+</span> Nuevo usuario</button>
+        </div>
+        <div class="user-toolbar">
+          <label class="search-field" for="userSearch"><span aria-hidden="true">⌕</span><input id="userSearch" type="search" placeholder="Buscar por nombre o correo" autocomplete="off"></label>
+          <select id="roleFilter" aria-label="Filtrar por rol"><option value="">Todos los roles</option><option value="admin">Administrador</option><option value="user">Usuario</option></select>
+          <select id="statusFilter" aria-label="Filtrar por estado"><option value="">Todos los estados</option><option value="active">Activo</option><option value="inactive">Inactivo</option><option value="pending">Pendiente</option></select>
+        </div>
+        <p class="user-feedback" id="userFeedback" role="status"></p>
+        <div class="users-table-wrap">
+          <table class="users-table"><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Fecha de registro</th><th><span class="sr-only">Acciones</span></th></tr></thead><tbody id="usersTableBody"></tbody></table>
+          <div class="empty-users" id="emptyUsers" hidden>No se encontraron usuarios con estos filtros.</div>
+        </div>
+      </section>
       <p class="dashboard-note">Los datos mostrados son una vista previa local del módulo frontend.</p>
     </main>
+  </div>
+
+  <div class="modal-backdrop" id="userModal" hidden>
+    <form class="user-modal" id="userForm">
+      <div class="modal-heading"><div><p class="eyebrow">Cuenta</p><h2 id="userModalTitle">Nuevo usuario</h2></div><button class="icon-button" id="closeUserModal" type="button" aria-label="Cerrar">×</button></div>
+      <input id="userId" type="hidden">
+      <label>Nombre completo<input id="userNameInput" name="name" required></label>
+      <label>Correo electrónico<input id="userEmailInput" name="email" type="email" required></label>
+      <label>Contraseña<input id="userPasswordInput" name="password" type="password" minlength="6" placeholder="Mínimo 6 caracteres"></label>
+      <div class="form-row"><label>Rol<select id="userRoleInput" name="role"><option value="user">Usuario</option><option value="admin">Administrador</option></select></label><label>Estado<select id="userStatusInput" name="status"><option value="active">Activo</option><option value="inactive">Inactivo</option><option value="pending">Pendiente</option></select></label></div>
+      <p class="modal-error" id="userFormError" role="alert"></p>
+      <div class="modal-actions"><button class="secondary-action" id="cancelUserButton" type="button">Cancelar</button><button class="primary-action" type="submit">Guardar usuario</button></div>
+    </form>
   </div>
 
   <script>
@@ -146,6 +175,66 @@
         }
       })
       .catch(err => console.error('Error fetching dashboard stats:', err));
+
+      const USERS_KEY = 'reservas_users';
+      const userElements = {
+        body: document.getElementById('usersTableBody'), search: document.getElementById('userSearch'),
+        role: document.getElementById('roleFilter'), status: document.getElementById('statusFilter'),
+        feedback: document.getElementById('userFeedback'), empty: document.getElementById('emptyUsers'), modal: document.getElementById('userModal'),
+        form: document.getElementById('userForm'), formError: document.getElementById('userFormError'), id: document.getElementById('userId'),
+        name: document.getElementById('userNameInput'), email: document.getElementById('userEmailInput'), password: document.getElementById('userPasswordInput'),
+        userRole: document.getElementById('userRoleInput'), userStatus: document.getElementById('userStatusInput'), title: document.getElementById('userModalTitle')
+      };
+      const storedUsers = (() => { try { return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); } catch (error) { return []; } })();
+      if (!storedUsers.length && session.user) {
+        storedUsers.push({ id: session.user.id || `local-${Date.now()}`, name: session.user.name || 'Usuario demo', email: session.user.email || 'usuario@ejemplo.com', role: session.user.role || 'user', status: session.user.status || 'active', createdAt: new Date().toISOString() });
+        localStorage.setItem(USERS_KEY, JSON.stringify(storedUsers));
+      }
+      let users = [];
+      const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
+      const statusLabels = { active: 'Activo', inactive: 'Inactivo', pending: 'Pendiente' };
+      const roleLabels = { admin: 'Administrador', user: 'Usuario' };
+      const formatDate = (value) => new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value));
+      const requestUsers = async (options = {}) => {
+        const search = String(options.search || '').toLowerCase();
+        return storedUsers.filter((user) => (!search || `${user.name} ${user.email}`.toLowerCase().includes(search)) && (!options.role || user.role === options.role) && (!options.status || user.status === options.status));
+      };
+      const renderUsers = () => {
+        userElements.body.innerHTML = users.map((user) => `<tr><td><strong>${escapeHtml(user.name)}</strong></td><td>${escapeHtml(user.email)}</td><td>${roleLabels[user.role] || user.role}</td><td><span class="status-badge ${user.status}">${statusLabels[user.status] || user.status}</span></td><td>${formatDate(user.createdAt)}</td><td><div class="row-actions"><button class="row-action" data-edit="${user.id}" type="button" title="Editar usuario">Editar</button><button class="row-action danger" data-delete="${user.id}" type="button" title="Eliminar usuario">Eliminar</button></div></td></tr>`).join('');
+        userElements.empty.hidden = users.length > 0;
+      };
+      const loadUsers = async () => {
+        userElements.feedback.textContent = 'Cargando usuarios...';
+        try { users = await requestUsers({ search: userElements.search.value, role: userElements.role.value, status: userElements.status.value }); renderUsers(); userElements.feedback.textContent = `${users.length} usuario(s) encontrado(s)`; }
+        catch (error) { userElements.feedback.textContent = error.message; }
+      };
+      const openUserModal = (user) => { userElements.form.reset(); userElements.formError.textContent = ''; userElements.id.value = user?.id || ''; userElements.title.textContent = user ? 'Editar usuario' : 'Nuevo usuario'; userElements.name.value = user?.name || ''; userElements.email.value = user?.email || ''; userElements.userRole.value = user?.role || 'user'; userElements.userStatus.value = user?.status || 'active'; userElements.password.required = !user; userElements.modal.hidden = false; userElements.name.focus(); };
+      const closeUserModal = () => { userElements.modal.hidden = true; };
+      document.getElementById('newUserButton').addEventListener('click', () => openUserModal());
+      document.getElementById('closeUserModal').addEventListener('click', closeUserModal);
+      document.getElementById('cancelUserButton').addEventListener('click', closeUserModal);
+      userElements.modal.addEventListener('click', (event) => { if (event.target === userElements.modal) closeUserModal(); });
+      [userElements.search, userElements.role, userElements.status].forEach((element) => element.addEventListener('input', loadUsers));
+      userElements.body.addEventListener('click', async (event) => {
+        const editId = event.target.dataset.edit; const deleteId = event.target.dataset.delete;
+        if (editId) openUserModal(users.find((user) => user.id === editId));
+        if (deleteId && window.confirm('¿Quieres eliminar este usuario? Esta acción no se puede deshacer.')) {
+          const userIndex = storedUsers.findIndex((user) => user.id === deleteId);
+          if (userIndex >= 0) { storedUsers.splice(userIndex, 1); localStorage.setItem(USERS_KEY, JSON.stringify(storedUsers)); await loadUsers(); }
+        }
+      });
+      userElements.form.addEventListener('submit', async (event) => {
+        event.preventDefault(); userElements.formError.textContent = '';
+        const payload = { name: userElements.name.value.trim(), email: userElements.email.value.trim(), role: userElements.userRole.value, status: userElements.userStatus.value };
+        if (userElements.password.value) payload.password = userElements.password.value;
+        const duplicate = storedUsers.some((user) => user.email.toLowerCase() === payload.email.toLowerCase() && user.id !== userElements.id.value);
+        if (duplicate) { userElements.formError.textContent = 'El correo electrónico ya está registrado.'; return; }
+        const userId = userElements.id.value;
+        if (userId) { const user = storedUsers.find((item) => item.id === userId); Object.assign(user, payload); if (!userElements.password.value) delete user.password; }
+        else { storedUsers.push({ ...payload, id: `local-${Date.now()}`, createdAt: new Date().toISOString() }); }
+        localStorage.setItem(USERS_KEY, JSON.stringify(storedUsers)); closeUserModal(); await loadUsers();
+      });
+      if (isAdmin) loadUsers();
     }
   </script>
 </body>
