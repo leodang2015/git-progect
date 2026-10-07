@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Activity = require('../models/Activity');
 const jwt = require('jsonwebtoken');
 
 // Función auxiliar para generar JWT
@@ -115,6 +116,12 @@ const register = async (req, res) => {
     });
 
     if (user) {
+      try {
+        await Activity.create({ user: user._id, description: 'Creó su cuenta' });
+      } catch (activityError) {
+        console.error('Error al registrar actividad de usuario:', activityError);
+      }
+
       res.status(201).json({
         success: true,
         message: 'Registro exitoso',

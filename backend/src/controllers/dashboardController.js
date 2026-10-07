@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Service = require('../models/Service');
 const Reservation = require('../models/Reservation');
+const Activity = require('../models/Activity');
 
 // @desc    Obtener estadísticas del dashboard
 // @route   GET /api/dashboard/stats
@@ -8,13 +9,19 @@ const Reservation = require('../models/Reservation');
 const getDashboardStats = async (req, res) => {
   try {
     const totalUsers = await User.countDocuments();
-    const totalServices = await Service.countDocuments();
+    const totalServices = await Service.countDocuments({ isActive: true });
     const totalReservations = await Reservation.countDocuments();
+    const activeReservations = await Reservation.countDocuments({ status: { $in: ['pending', 'confirmed'] } });
+    const pendingReservations = await Reservation.countDocuments({ status: 'pending' });
 
     // Consultar las 5 reservas más recientes
     const recentReservations = await Reservation.find()
       .populate('user', 'name email')
       .populate('service', 'name')
+      .sort({ createdAt: -1 })
+      .limit(5);
+    const recentActivities = await Activity.find()
+      .populate('user', 'name')
       .sort({ createdAt: -1 })
       .limit(5);
 
@@ -40,9 +47,12 @@ const getDashboardStats = async (req, res) => {
         stats: {
           totalUsers,
           totalServices,
-          totalReservations
+          totalReservations,
+          activeReservations,
+          pendingReservations
         },
         recentReservations,
+        recentActivities,
         personalizedInfo,
         user: {
           id: req.user._id,
