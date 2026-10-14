@@ -1,6 +1,48 @@
 const Reservation = require('../models/Reservation');
 const Service = require('../models/Service');
 
+const listReservations = async (req, res) => {
+  try {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 20;
+    const isAdmin = req.user.role === 'admin';
+    const requestedUser = req.query.user;
+
+    if (!isAdmin && requestedUser && requestedUser !== String(req.user._id)) {
+      return res.status(403).json({ success: false, message: 'No puedes consultar reservas de otro usuario' });
+    }
+
+    const filter = {};
+    if (isAdmin && requestedUser) filter.user = requestedUser;
+    if (!isAdmin) filter.user = req.user._id;
+    if (req.query.status) filter.status = req.query.status;
+
+    const [reservations, total] = await Promise.all([
+      Reservation.find(filter)
+        .populate('user', 'name email phone')
+        .populate('service', 'name price duration category')
+        .sort({ date: 1, _id: 1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      Reservation.countDocuments(filter)
+    ]);
+
+    return res.json({
+      success: true,
+      data: reservations,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+    });
+  } catch (error) {
+    if (error.name === 'ValidationError' || error.name === 'CastError') {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+
+    console.error('Error in listReservations:', error);
+    return res.status(500).json({ success: false, message: 'Error interno del servidor' });
+  }
+};
+
 const createReservation = async (req, res) => {
   try {
     const service = await Service.findById(req.body.serviceId);
@@ -38,4 +80,4 @@ const createReservation = async (req, res) => {
   }
 };
 
-module.exports = { createReservation };
+module.exports = { listReservations, createReservation };
