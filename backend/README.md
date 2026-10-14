@@ -12,3 +12,9 @@ La API reutiliza el modelo `User` y está protegida con JWT: todas las rutas req
 Las respuestas de usuarios contienen `id`, `name`, `email`, `role`, `status`, `createdAt` y `updatedAt`; nunca exponen la contraseña ni los datos de bloqueo de inicio de sesión. Las contraseñas nuevas o actualizadas se hashean con el middleware existente del modelo.
 
 Ejecuta `npm test` desde `backend/` para validar el esquema de usuario.
+
+## Reservas
+
+- `POST /api/reservations`: crea una reserva para el usuario autenticado. Requiere `Authorization: Bearer <token>` y un cuerpo con `serviceId` y `date` (fecha y hora futura en formato ISO 8601 con zona horaria, por ejemplo `2026-10-15T14:30:00-05:00`). El servicio debe estar activo. La duración se toma del servicio y la API devuelve `409` si el intervalo se cruza con una reserva pendiente o confirmada.
+
+La reserva guarda el usuario, el servicio, el inicio (`date`), el final calculado (`endDate`) y el estado (`pending` por defecto). Los intervalos que solo se tocan en el límite se consideran disponibles.

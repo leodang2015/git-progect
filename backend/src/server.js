@@ -6,6 +6,7 @@ const authRoutes = require('./routes/authRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const userRoutes = require('./routes/userRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
+const reservationRoutes = require('./routes/reservationRoutes');
 
 // Conectar a la base de datos
 connectDB();
@@ -21,6 +22,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/services', serviceRoutes);
+app.use('/api/reservations', reservationRoutes);
 
 // Ruta básica
 app.get('/', (req, res) => {
