@@ -15,6 +15,16 @@ const reservationSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
+  endDate: {
+    type: Date,
+    required: true,
+    validate: {
+      validator(value) {
+        return !this.date || value > this.date;
+      },
+      message: 'La fecha de finalización debe ser posterior a la fecha de inicio'
+  },
+  },
   status: {
     type: String,
     enum: ['pending', 'confirmed', 'cancelled', 'completed'],
@@ -23,6 +33,8 @@ const reservationSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+reservationSchema.index({ status: 1, date: 1, endDate: 1 });
 
 const Reservation = mongoose.model('Reservation', reservationSchema);
 
