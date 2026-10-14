@@ -1,4 +1,4 @@
-const { body, query } = require('express-validator');
+const { body, param, query } = require('express-validator');
 
 const listReservationsValidator = [
   query('user').optional().isMongoId().withMessage('El id del usuario no es válido'),
@@ -20,4 +20,15 @@ const createReservationValidator = [
     .custom((value) => value > new Date()).withMessage('La fecha de la reserva debe ser futura')
 ];
 
-module.exports = { listReservationsValidator, createReservationValidator };
+const updateReservationValidator = [
+  param('id').isMongoId().withMessage('El id de la reserva no es válido'),
+  body('serviceId').optional().isMongoId().withMessage('El id del servicio no es válido'),
+  body('date').optional()
+    .isISO8601({ strict: true, strictSeparator: true }).withMessage('La fecha debe estar en formato ISO 8601').bail()
+    .custom((value) => value.includes('T')).withMessage('La fecha debe incluir la hora').bail()
+    .matches(/(?:Z|[+-]\d{2}:\d{2})$/).withMessage('La fecha debe incluir una zona horaria').bail()
+    .toDate()
+    .custom((value) => value > new Date()).withMessage('La fecha de la reserva debe ser futura')
+];
+
+module.exports = { listReservationsValidator, createReservationValidator, updateReservationValidator };
