@@ -13,7 +13,6 @@ connectDB();
 
 const app = express(); 
 
-// Configuración de CORS para permitir tu frontend
 const allowedOrigins = [
   'https://git-progect-frontend.vercel.app',
   'https://git-progect-frontend-muebles.vercel.app',
@@ -23,8 +22,8 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Permite peticiones sin origen (como Postman o curl) o si están en la lista
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Permite peticiones sin origen, si están en la lista o si terminan en .vercel.app
+    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
       callback(null, true);
     } else {
       callback(new Error('Bloqueado por CORS'));
