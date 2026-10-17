@@ -110,19 +110,14 @@ document.addEventListener('DOMContentLoaded', () => {
     submitButton.disabled = true;
     showMessage('Iniciando sesión...', 'success');
 
-    try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+try {
+    const response = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: emailValue,
-          password: passwordValue
-        })
-      });
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailValue, password: passwordValue })
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
       if (response.ok) {
         saveJson(SESSION_KEY, {
