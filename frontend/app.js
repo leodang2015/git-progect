@@ -125,9 +125,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await response.json();
 
       if (response.ok) {
+        const localUsers = getJson(USERS_KEY, []);
+        const localMatch = localUsers.find(u => u.email && u.email.toLowerCase() === emailValue.toLowerCase());
+        const resolvedUser = {
+          ...data.user,
+          name: (data.user && data.user.name) || (localMatch && localMatch.name) || (emailValue.split('@')[0].charAt(0).toUpperCase() + emailValue.split('@')[0].slice(1)),
+          role: (data.user && data.user.role) || (localMatch && localMatch.role) || 'user'
+        };
         saveJson(SESSION_KEY, {
           token: data.token,
-          user: data.user,
+          user: resolvedUser,
           expiresAt: Date.now() + (60 * 60 * 1000)
         });
         showMessage('Inicio de sesión exitoso. Redirigiendo...', 'success');

@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mis Citas | BellaSalón Studio & Spa</title>
+  <!-- Iconos de FontAwesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dashboard-page">
+  <div class="dashboard-shell">
+    <!-- MENÚ LATERAL IZQUIERDO -->
+    <aside class="dashboard-sidebar" id="dashboardSidebar" aria-label="Navegación principal">
+      <a class="dashboard-brand" href="dashboard.html" aria-label="Ir al inicio del dashboard">
+        <span class="brand-mark" aria-hidden="true"><i class="fa-solid fa-scissors"></i></span>
+        <span><strong>BellaSalón</strong><small>Studio & Spa</small></span>
+      </a>
+      <nav class="dashboard-nav">
+        <a class="dashboard-nav-link" id="navDashboard" href="dashboard.html">
+          <span aria-hidden="true"><i class="fa-solid fa-house-chimney-window"></i></span>Resumen
+        </a>
+        <a class="dashboard-nav-link active" id="navReservas" href="reservas.html">
+          <span aria-hidden="true"><i class="fa-solid fa-calendar-check"></i></span>Mis Citas
+        </a>
+        <a class="dashboard-nav-link" id="navServicios" href="servicios.html">
+          <span aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></span>Carta Belleza
+        </a>
+        <a class="dashboard-nav-link admin-only" id="navAdminServicios" href="admin-servicios.html">
+          <span aria-hidden="true"><i class="fa-solid fa-spa"></i></span>Servicios Admin
+        </a>
+        <a class="dashboard-nav-link admin-only" id="navAdminUsuarios" href="admin-usuarios.html">
+          <span aria-hidden="true"><i class="fa-solid fa-users"></i></span>Clientes
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <span class="status-dot"></span><span>Salón Abierto • Atención Activa</span>
+      </div>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL: GESTIÓN Y AGENDA DE CITAS -->
+    <main class="dashboard-main">
+      <header class="dashboard-header">
+        <button class="menu-toggle" id="menuToggle" type="button" aria-label="Abrir menú" aria-expanded="false">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div>
+          <p class="eyebrow"><i class="fa-solid fa-calendar-check"></i> Agenda de Citas</p>
+          <h1>Mis Citas en el Salón</h1>
+        </div>
+        <div class="header-actions">
+          <a href="https://wa.me/573001234567" target="_blank" rel="noopener noreferrer" class="salon-help-chip" title="Atención directa por WhatsApp">
+            <i class="fa-brands fa-whatsapp"></i> <span>Recepción Spa</span>
+          </a>
+          <div class="user-chip">
+            <span class="avatar" id="userInitials">U</span>
+            <span><strong id="userName">Usuario</strong><small id="userRole">Cliente</small></span>
+          </div>
+          <button class="logout-button" id="logoutButton" type="button" title="Cerrar sesión">
+            <span aria-hidden="true"><i class="fa-solid fa-arrow-right-from-bracket"></i></span>
+            <span class="logout-label">Salir</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- SECCIÓN PRINCIPAL DE CITAS -->
+      <section class="reservation-management" id="reservas" aria-labelledby="reservationsTitle" style="margin-top: 15px;">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow"><i class="fa-solid fa-sparkles"></i> Atención Personalizada</p>
+            <h2 id="reservationsTitle">Agenda & Historial de Servicios</h2>
+            <p id="reservationsSubtitle">Consulta el estado de tus citas, fechas programadas, estilistas a cargo o solicita un nuevo turno.</p>
+          </div>
+          <div class="heading-actions-cluster">
+            <div class="view-mode-toggle" role="group" aria-label="Cambiar vista de citas">
+              <button type="button" class="view-btn active" id="viewCardsBtn" title="Vista de tarjetas estilo salón">
+                <i class="fa-solid fa-grip"></i> Tarjetas
+              </button>
+              <button type="button" class="view-btn" id="viewTableBtn" title="Vista de tabla clásica">
+                <i class="fa-solid fa-table-list"></i> Tabla
+              </button>
+            </div>
+            <button class="primary-action" id="newReservationButton" type="button">
+              <i class="fa-solid fa-calendar-plus"></i> Agendar Cita
+            </button>
+          </div>
+        </div>
+
+        <!-- Píldoras de filtrado rápido por estado (T07) -->
+        <div class="reservation-status-pills" aria-label="Filtro rápido por estado">
+          <button type="button" class="status-pill active" data-pill-status="" id="pillAll">
+            <i class="fa-solid fa-border-all"></i> Todas <span class="pill-count" id="countAll">0</span>
+          </button>
+          <button type="button" class="status-pill confirmed" data-pill-status="confirmed" id="pillConfirmed">
+            <i class="fa-solid fa-circle-check"></i> Confirmadas <span class="pill-count" id="countConfirmed">0</span>
+          </button>
+          <button type="button" class="status-pill pending" data-pill-status="pending" id="pillPending">
+            <i class="fa-solid fa-clock"></i> Pendientes <span class="pill-count" id="countPending">0</span>
+          </button>
+          <button type="button" class="status-pill completed" data-pill-status="completed" id="pillCompleted">
+            <i class="fa-solid fa-sparkles"></i> Finalizadas <span class="pill-count" id="countCompleted">0</span>
+          </button>
+          <button type="button" class="status-pill cancelled" data-pill-status="cancelled" id="pillCancelled">
+            <i class="fa-solid fa-ban"></i> Canceladas <span class="pill-count" id="countCancelled">0</span>
+          </button>
+        </div>
+
+        <!-- Barra de herramientas: Buscador y filtros de fecha -->
+        <div class="reservation-toolbar">
+          <label class="search-field" for="reservationSearch">
+            <span aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>
+            <input id="reservationSearch" type="search" placeholder="Buscar por tratamiento, estilista, código o fecha..." autocomplete="off">
+          </label>
+
+          <div class="filter-group">
+            <select id="reservationDatePreset" aria-label="Filtro rápido de fecha">
+              <option value="all">Todas las fechas</option>
+              <option value="today">Hoy</option>
+              <option value="upcoming">Próximas citas</option>
+              <option value="past">Citas pasadas</option>
+              <option value="custom">Fecha exacta...</option>
+            </select>
+            <input id="reservationDateFilter" type="date" aria-label="Filtrar por fecha exacta" title="Filtrar por fecha específica" hidden>
+            <button id="clearDateFilterBtn" class="clear-btn" type="button" title="Limpiar fecha" hidden>×</button>
+          </div>
+
+          <select id="reservationStatusFilter" aria-label="Filtrar por estado" style="display:none;">
+            <option value="">Todos los estados</option>
+            <option value="confirmed">Confirmada</option>
+            <option value="pending">Pendiente</option>
+            <option value="completed">Finalizada</option>
+            <option value="cancelled">Cancelada</option>
+          </select>
+
+          <button id="resetReservationFilters" class="secondary-action reset-btn" type="button" title="Restablecer todos los filtros">
+            Restablecer
+          </button>
+        </div>
+
+        <p class="user-feedback" id="reservationFeedback" role="status"></p>
+
+        <!-- CONTENEDOR 1: VISTA DE TARJETAS TIPO SALÓN (Por defecto) -->
+        <div class="appointment-cards-grid" id="reservationsCardsContainer"></div>
+
+        <!-- CONTENEDOR 2: VISTA TABLA CLÁSICA (Alternable) -->
+        <div class="users-table-wrap" id="reservationsTableWrap" hidden>
+          <table class="users-table" id="reservationsTable">
+            <thead>
+              <tr>
+                <th><i class="fa-solid fa-hashtag"></i> Código</th>
+                <th><i class="fa-solid fa-scissors"></i> Tratamiento / Estilista</th>
+                <th><i class="fa-solid fa-calendar"></i> Fecha</th>
+                <th><i class="fa-solid fa-clock"></i> Hora</th>
+                <th class="admin-only"><i class="fa-solid fa-user"></i> Cliente</th>
+                <th><i class="fa-solid fa-tag"></i> Valor</th>
+                <th><i class="fa-solid fa-circle-dot"></i> Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="reservationsTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="empty-users" id="emptyReservations" hidden>No se encontraron citas con los filtros seleccionados.</div>
+
+        <!-- Paginación de Reservas -->
+        <div class="table-pagination" id="reservationPagination">
+          <div class="pagination-info" id="reservationPaginationInfo">
+            Mostrando <strong>0</strong> citas
+          </div>
+          <div class="pagination-controls">
+            <div class="rows-per-page">
+              <label for="reservationsPerPage">Mostrar:</label>
+              <select id="reservationsPerPage" aria-label="Citas por página">
+                <option value="6" selected>6</option>
+                <option value="12">12</option>
+                <option value="24">24</option>
+              </select>
+            </div>
+            <div class="pagination-nav">
+              <button class="page-btn" id="prevPageBtn" type="button" title="Página anterior" disabled>‹ Anterior</button>
+              <div class="page-numbers" id="reservationPageNumbers"></div>
+              <button class="page-btn" id="nextPageBtn" type="button" title="Página siguiente" disabled>Siguiente ›</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <p class="dashboard-note">BellaSalón Studio & Spa • Cuidado capilar, estilismo y bienestar profesional.</p>
+    </main>
+  </div>
+
+  <!-- MODAL DE AGENDAR CITA (HUS-06) -->
+  <div class="modal-backdrop" id="reservationModal" hidden>
+    <div class="user-modal reservation-modal" role="dialog" aria-modal="true" aria-labelledby="reservationModalTitle">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">Agendamiento Exclusivo</p>
+          <h2 id="reservationModalTitle">Agendar cita de belleza</h2>
+        </div>
+        <button class="icon-button" id="closeReservationModal" type="button" aria-label="Cerrar modal">×</button>
+      </div>
+
+      <!-- Flujo visual UI/UX: Servicio -> Profesional -> Horario -> Confirmación -->
+      <div class="flow-indicator" aria-label="Progreso del agendamiento">
+        <div class="flow-step active" id="flowStep1"><span class="step-num">1</span><span class="step-txt">Servicio</span></div>
+        <span class="flow-arrow" aria-hidden="true">→</span>
+        <div class="flow-step" id="flowStep2"><span class="step-num">2</span><span class="step-txt">Fecha</span></div>
+        <span class="flow-arrow" aria-hidden="true">→</span>
+        <div class="flow-step" id="flowStep3"><span class="step-num">3</span><span class="step-txt">Hora</span></div>
+        <span class="flow-arrow" aria-hidden="true">→</span>
+        <div class="flow-step" id="flowStep4"><span class="step-num">4</span><span class="step-txt">Confirmación</span></div>
+      </div>
+
+      <form id="reservationForm" novalidate>
+        <label for="reservationService">
+          <i class="fa-solid fa-sparkles"></i> Servicio de belleza
+          <select id="reservationService" name="service" required>
+            <option value="" disabled selected>Seleccione un servicio ▼</option>
+          </select>
+        </label>
+
+        <label for="reservationStylist">
+          <i class="fa-solid fa-user-tie"></i> Estilista / Profesional preferido
+          <select id="reservationStylist" name="stylist">
+            <option value="sty-any">Primer profesional disponible</option>
+          </select>
+        </label>
+
+        <div class="form-row">
+          <label for="reservationHairLength">
+            <i class="fa-solid fa-wand-magic"></i> Largo de cabello / Tipo
+            <select id="reservationHairLength" name="hairLength">
+              <option value="Corto">Cabello corto / Barba</option>
+              <option value="Medio" selected>Cabello medio (hombros)</option>
+              <option value="Largo">Cabello largo</option>
+              <option value="Extra largo">Cabello extra largo</option>
+              <option value="Uñas / Spa">Uñas / Manos / Pies</option>
+            </select>
+          </label>
+          <label for="reservationDate">
+            <i class="fa-solid fa-calendar"></i> Fecha de atención
+            <input id="reservationDate" name="date" type="date" required>
+          </label>
+        </div>
+
+        <label for="reservationTime">
+          <i class="fa-solid fa-clock"></i> Hora de cita (Turnos de salón)
+          <select id="reservationTime" name="time" required>
+            <option value="" disabled selected>Seleccione horario ▼</option>
+            <option value="08:00 AM">08:00 AM</option>
+            <option value="08:30 AM">08:30 AM</option>
+            <option value="09:00 AM">09:00 AM</option>
+            <option value="09:30 AM">09:30 AM</option>
+            <option value="10:00 AM">10:00 AM</option>
+            <option value="10:30 AM">10:30 AM</option>
+            <option value="11:00 AM">11:00 AM</option>
+            <option value="11:30 AM">11:30 AM</option>
+            <option value="01:30 PM">01:30 PM</option>
+            <option value="02:00 PM">02:00 PM</option>
+            <option value="02:30 PM">02:30 PM</option>
+            <option value="03:00 PM">03:00 PM</option>
+            <option value="03:30 PM">03:30 PM</option>
+            <option value="04:00 PM">04:00 PM</option>
+            <option value="04:30 PM">04:30 PM</option>
+            <option value="05:00 PM">05:00 PM</option>
+            <option value="05:30 PM">05:30 PM</option>
+          </select>
+        </label>
+
+        <label for="reservationNotes">
+          <i class="fa-solid fa-note-sticky"></i> Indicaciones o preferencias especiales (Alergias, tonos, etc.)
+          <textarea id="reservationNotes" name="notes" rows="2" placeholder="Ej: Sensibilidad a tintes fuertes, deseo ondas suaves al final..."></textarea>
+        </label>
+
+        <div class="reservation-summary" id="reservationSummaryBox">
+          <div class="summary-title">Resumen de tu Experiencia</div>
+          <div class="summary-details">
+            <div class="summary-item">
+              <span class="label">Servicio:</span>
+              <strong id="summaryService">—</strong>
+            </div>
+            <div class="summary-item">
+              <span class="label">Fecha:</span>
+              <strong id="summaryDate">—</strong>
+            </div>
+            <div class="summary-item">
+              <span class="label">Hora:</span>
+              <strong id="summaryTime">—</strong>
+            </div>
+            <div class="summary-item highlight">
+              <span class="label">Tarifa estimada:</span>
+              <strong id="summaryPrice" class="summary-price">$0</strong>
+            </div>
+          </div>
+        </div>
+
+        <p class="modal-error" id="reservationFormError" role="alert"></p>
+
+        <div class="modal-actions">
+          <button class="secondary-action" id="cancelReservationButton" type="button">Cancelar</button>
+          <button class="primary-action" id="confirmReservationButton" type="submit">Confirmar Cita</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL DE CONFIRMACIÓN DE RESERVA EXITOSA (T11) -->
+  <div class="modal-backdrop" id="reservationSuccessModal" hidden>
+    <div class="user-modal confirmation-modal" role="dialog" aria-modal="true" aria-labelledby="confirmationModalTitle">
+      <div class="confirmation-badge" aria-hidden="true">✓</div>
+      <p class="eyebrow">Agendamiento completado</p>
+      <h2 id="confirmationModalTitle">¡Cita agendada con éxito!</h2>
+      <p class="confirmation-subtitle">Te esperamos en BellaSalón Studio & Spa para consentirte.</p>
+
+      <div class="confirmation-ticket">
+        <div class="ticket-row">
+          <span>Código de seguimiento:</span>
+          <strong id="ticketCode">#RES-000000</strong>
+        </div>
+        <div class="ticket-row">
+          <span>Tratamiento:</span>
+          <strong id="ticketService">—</strong>
+        </div>
+        <div class="ticket-row">
+          <span>Profesional asignado:</span>
+          <strong id="ticketStylist">Estilista</strong>
+        </div>
+        <div class="ticket-row">
+          <span>Fecha y Hora:</span>
+          <strong><span id="ticketDate">—</span> a las <span id="ticketTime">—</span></strong>
+        </div>
+        <div class="ticket-row">
+          <span>Valor:</span>
+          <strong id="ticketPrice" class="ticket-price">$0</strong>
+        </div>
+        <div class="ticket-row">
+          <span>Estado inicial:</span>
+          <span class="status-badge pending" id="ticketStatus">Pendiente por confirmar</span>
+        </div>
+      </div>
+
+      <div class="modal-actions center">
+        <a id="whatsappShareBtn" href="#" target="_blank" rel="noopener noreferrer" class="action-btn wa-modal-btn">
+          <i class="fa-brands fa-whatsapp"></i> Confirmar por WhatsApp
+        </a>
+        <button class="primary-action" id="closeSuccessModalButton" type="button">Aceptar y ver citas</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL VISTA DETALLE DE CITA (HUS-07 T08) -->
+  <div class="modal-backdrop" id="reservationDetailModal" hidden>
+    <div class="user-modal reservation-detail-modal" role="dialog" aria-modal="true" aria-labelledby="detailModalTitle">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">Comprobante de Cita</p>
+          <h2 id="detailModalTitle">Detalle de la Reserva</h2>
+        </div>
+        <button class="icon-button" id="closeDetailModal" type="button" aria-label="Cerrar modal">×</button>
+      </div>
+
+      <div class="detail-card">
+        <div class="detail-header-bar">
+          <div>
+            <span class="detail-sublabel">Código de seguimiento</span>
+            <h3 class="detail-code" id="detailCode">#RES-000000</h3>
+          </div>
+          <div id="detailStatusBadgeWrap">
+            <span class="status-badge pending" id="detailStatusBadge">Pendiente</span>
+          </div>
+        </div>
+
+        <div class="detail-info-grid">
+          <div class="detail-field">
+            <span class="detail-field-label">Tratamiento / Servicio</span>
+            <strong class="detail-field-val" id="detailService">—</strong>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Estilista a cargo</span>
+            <strong class="detail-field-val" id="detailStylist">—</strong>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Fecha agendada</span>
+            <strong class="detail-field-val" id="detailDate">—</strong>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Hora</span>
+            <strong class="detail-field-val" id="detailTime">—</strong>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Largo / Tipo</span>
+            <strong class="detail-field-val" id="detailHairLength">—</strong>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Inversión estimada</span>
+            <strong class="detail-field-val price-text" id="detailPrice">$0</strong>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Cliente titular</span>
+            <strong class="detail-field-val" id="detailUser">—</strong>
+          </div>
+          <div class="detail-field">
+            <span class="detail-field-label">Fecha de solicitud</span>
+            <strong class="detail-field-val" id="detailCreatedAt">—</strong>
+          </div>
+        </div>
+
+        <div class="detail-notes-card">
+          <span class="detail-field-label">Observaciones y notas del servicio</span>
+          <p id="detailNotes" class="detail-notes-text">Sin observaciones registradas.</p>
+        </div>
+      </div>
+
+      <div class="modal-actions space-between">
+        <div style="display:flex; gap:8px;">
+          <button class="secondary-action" id="printDetailButton" type="button"><i class="fa-solid fa-print"></i> Imprimir</button>
+          <a class="action-btn wa-modal-btn" id="detailWhatsAppBtn" href="#" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-whatsapp"></i> Chat Salón</a>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="action-btn cancel-btn" id="cancelFromDetailBtn" type="button"><i class="fa-solid fa-ban"></i> Cancelar</button>
+          <button class="action-btn edit-btn" id="editFromDetailBtn" type="button"><i class="fa-solid fa-calendar-days"></i> Reprogramar</button>
+          <button class="primary-action" id="closeDetailModalBtn" type="button">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL EDITAR / REPROGRAMAR CITA (HUS-08 T02) -->
+  <div class="modal-backdrop" id="editReservationModal" hidden>
+    <div class="user-modal edit-reservation-modal" role="dialog" aria-modal="true" aria-labelledby="editReservationModalTitle">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">Reprogramación de Cita</p>
+          <h2 id="editReservationModalTitle">Modificar cita <span id="editReservationCodeBadge" class="code-badge">#RES-000000</span></h2>
+        </div>
+        <button class="icon-button" id="closeEditReservationModal" type="button" aria-label="Cerrar modal">×</button>
+      </div>
+
+      <form id="editReservationForm" novalidate>
+        <input type="hidden" id="editReservationId" name="id">
+
+        <label for="editReservationService">
+          Servicio de belleza
+          <select id="editReservationService" name="service" required>
+            <option value="" disabled selected>Seleccione un servicio ▼</option>
+          </select>
+        </label>
+
+        <label for="editReservationStylist">
+          Estilista / Profesional
+          <select id="editReservationStylist" name="stylist">
+            <option value="sty-any">Primer profesional disponible</option>
+          </select>
+        </label>
+
+        <div class="form-row">
+          <label for="editReservationHairLength">
+            Largo / Tipo
+            <select id="editReservationHairLength" name="hairLength">
+              <option value="Corto">Cabello corto / Barba</option>
+              <option value="Medio">Cabello medio (hombros)</option>
+              <option value="Largo">Cabello largo</option>
+              <option value="Extra largo">Cabello extra largo</option>
+              <option value="Uñas / Spa">Uñas / Manos / Pies</option>
+            </select>
+          </label>
+          <label for="editReservationDate">
+            Nueva fecha
+            <input id="editReservationDate" name="date" type="date" required>
+          </label>
+        </div>
+
+        <label for="editReservationTime">
+          Nueva hora
+          <select id="editReservationTime" name="time" required>
+            <option value="" disabled selected>Seleccione una hora ▼</option>
+            <option value="08:00 AM">08:00 AM</option>
+            <option value="08:30 AM">08:30 AM</option>
+            <option value="09:00 AM">09:00 AM</option>
+            <option value="09:30 AM">09:30 AM</option>
+            <option value="10:00 AM">10:00 AM</option>
+            <option value="10:30 AM">10:30 AM</option>
+            <option value="11:00 AM">11:00 AM</option>
+            <option value="11:30 AM">11:30 AM</option>
+            <option value="01:30 PM">01:30 PM</option>
+            <option value="02:00 PM">02:00 PM</option>
+            <option value="02:30 PM">02:30 PM</option>
+            <option value="03:00 PM">03:00 PM</option>
+            <option value="03:30 PM">03:30 PM</option>
+            <option value="04:00 PM">04:00 PM</option>
+            <option value="04:30 PM">04:30 PM</option>
+            <option value="05:00 PM">05:00 PM</option>
+            <option value="05:30 PM">05:30 PM</option>
+          </select>
+        </label>
+
+        <label for="editReservationNotes">
+          Observaciones
+          <textarea id="editReservationNotes" name="notes" rows="2" placeholder="Indicaciones o detalles adicionales (opcional)"></textarea>
+        </label>
+
+        <!-- Estado (Sólo visible para Administrador) -->
+        <div id="editStatusWrap" hidden>
+          <label for="editReservationStatus">
+            Estado de la reserva (Control Administrativo)
+            <select id="editReservationStatus" name="status">
+              <option value="pending">Pendiente</option>
+              <option value="confirmed">Confirmada</option>
+              <option value="completed">Finalizada</option>
+              <option value="cancelled">Cancelada</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="reservation-summary edit-summary" id="editReservationSummaryBox">
+          <div class="summary-title">Resumen de la modificación</div>
+          <div class="summary-details">
+            <div class="summary-item">
+              <span class="label">Servicio:</span>
+              <strong id="editSummaryService">—</strong>
+            </div>
+            <div class="summary-item">
+              <span class="label">Nueva fecha y hora:</span>
+              <strong id="editSummaryDateTime">—</strong>
+            </div>
+            <div class="summary-item highlight">
+              <span class="label">Tarifa estimada:</span>
+              <strong id="editSummaryPrice" class="summary-price">$0</strong>
+            </div>
+          </div>
+        </div>
+
+        <p class="modal-error" id="editReservationFormError" role="alert"></p>
+
+        <div class="modal-actions">
+          <button class="secondary-action" id="cancelEditReservationBtn" type="button">Cancelar</button>
+          <button class="primary-action" id="submitEditReservationBtn" type="submit">Guardar cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL DE CONFIRMACIÓN DE ACTUALIZACIÓN (HUS-08 T08) -->
+  <div class="modal-backdrop" id="confirmUpdateModal" hidden>
+    <div class="user-modal confirmation-prompt-modal" role="dialog" aria-modal="true" aria-labelledby="confirmUpdateTitle">
+      <div class="prompt-icon-wrap" aria-hidden="true">⚠️</div>
+      <p class="eyebrow">Confirmación requerida</p>
+      <h2 id="confirmUpdateTitle">¿Está seguro de actualizar esta reserva?</h2>
+      <p class="prompt-subtitle">Se modificarán los datos de tu cita con los nuevos valores ingresados.</p>
+
+      <div class="prompt-changes-preview" id="promptChangesPreview"></div>
+
+      <div class="modal-actions center">
+        <button class="secondary-action" id="cancelConfirmUpdateBtn" type="button">Cancelar</button>
+        <button class="primary-action" id="confirmUpdateBtn" type="button">Confirmar cambios</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE CONFIRMACIÓN DE CANCELACIÓN (HUS-09 T02) -->
+  <div class="modal-backdrop" id="cancelReservationModal" hidden>
+    <div class="user-modal cancel-reservation-modal" role="dialog" aria-modal="true" aria-labelledby="cancelReservationTitle">
+      <div class="modal-heading cancel-modal-heading">
+        <div class="cancel-title-wrap">
+          <span class="warning-icon" aria-hidden="true">⚠</span>
+          <h2 id="cancelReservationTitle">Cancelar cita</h2>
+        </div>
+        <button class="icon-button" id="closeCancelReservationModal" type="button" aria-label="Cerrar modal">×</button>
+      </div>
+
+      <div class="cancel-modal-body">
+        <p class="cancel-question">¿Está seguro de cancelar esta cita en el salón?</p>
+
+        <div class="cancel-details-box">
+          <div class="cancel-detail-item">
+            <span class="cancel-detail-label">Servicio:</span>
+            <strong id="cancelModalService" class="cancel-detail-value">—</strong>
+          </div>
+          <div class="cancel-detail-item">
+            <span class="cancel-detail-label">Fecha:</span>
+            <strong id="cancelModalDate" class="cancel-detail-value">—</strong>
+          </div>
+          <div class="cancel-detail-item">
+            <span class="cancel-detail-label">Hora:</span>
+            <strong id="cancelModalTime" class="cancel-detail-value">—</strong>
+          </div>
+          <div class="cancel-detail-item">
+            <span class="cancel-detail-label">Código:</span>
+            <span id="cancelModalCode" class="cancel-code-badge">#RES-000000</span>
+          </div>
+        </div>
+
+        <p class="cancel-disclaimer">Al cancelar esta cita se liberará el horario de nuestro profesional para que otros clientes puedan agendarlo.</p>
+        <p class="modal-error" id="cancelReservationError" role="alert"></p>
+      </div>
+
+      <div class="modal-actions cancel-actions-row">
+        <button class="btn-cancel-process" id="cancelDismissBtn" type="button">No cancelar</button>
+        <button class="btn-confirm-cancel" id="confirmCancelBtn" type="button">Sí, cancelar cita</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="shared.js"></script>
+  <script src="reservas.js"></script>
+</body>
+</html>

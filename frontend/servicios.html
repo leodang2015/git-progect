@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carta de Belleza | BellaSalón Studio & Spa</title>
+  <!-- Iconos de FontAwesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dashboard-page">
+  <div class="dashboard-shell">
+    <!-- MENÚ LATERAL IZQUIERDO -->
+    <aside class="dashboard-sidebar" id="dashboardSidebar" aria-label="Navegación principal">
+      <a class="dashboard-brand" href="dashboard.html" aria-label="Ir al inicio del dashboard">
+        <span class="brand-mark" aria-hidden="true"><i class="fa-solid fa-scissors"></i></span>
+        <span><strong>BellaSalón</strong><small>Studio & Spa</small></span>
+      </a>
+      <nav class="dashboard-nav">
+        <a class="dashboard-nav-link" id="navDashboard" href="dashboard.html">
+          <span aria-hidden="true"><i class="fa-solid fa-house-chimney-window"></i></span>Resumen
+        </a>
+        <a class="dashboard-nav-link" id="navReservas" href="reservas.html">
+          <span aria-hidden="true"><i class="fa-solid fa-calendar-check"></i></span>Mis Citas
+        </a>
+        <a class="dashboard-nav-link active" id="navServicios" href="servicios.html">
+          <span aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></span>Carta Belleza
+        </a>
+        <a class="dashboard-nav-link admin-only" id="navAdminServicios" href="admin-servicios.html">
+          <span aria-hidden="true"><i class="fa-solid fa-spa"></i></span>Servicios Admin
+        </a>
+        <a class="dashboard-nav-link admin-only" id="navAdminUsuarios" href="admin-usuarios.html">
+          <span aria-hidden="true"><i class="fa-solid fa-users"></i></span>Clientes
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <span class="status-dot"></span><span>Salón Abierto • Atención Activa</span>
+      </div>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL: CARTA DE SERVICIOS -->
+    <main class="dashboard-main">
+      <header class="dashboard-header">
+        <button class="menu-toggle" id="menuToggle" type="button" aria-label="Abrir menú" aria-expanded="false">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div>
+          <p class="eyebrow"><i class="fa-solid fa-sparkles"></i> Menú de Experiencias</p>
+          <h1>Carta Exclusiva de Servicios</h1>
+        </div>
+        <div class="header-actions">
+          <a href="https://wa.me/573001234567" target="_blank" rel="noopener noreferrer" class="salon-help-chip" title="Atención directa por WhatsApp">
+            <i class="fa-brands fa-whatsapp"></i> <span>Recepción Spa</span>
+          </a>
+          <div class="user-chip">
+            <span class="avatar" id="userInitials">U</span>
+            <span><strong id="userName">Usuario</strong><small id="userRole">Cliente</small></span>
+          </div>
+          <button class="logout-button" id="logoutButton" type="button" title="Cerrar sesión">
+            <span aria-hidden="true"><i class="fa-solid fa-arrow-right-from-bracket"></i></span>
+            <span class="logout-label">Salir</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- SECCIÓN DESTACADA: CARTA DE SERVICIOS -->
+      <section class="salon-showcase-section" id="carta-servicios" aria-labelledby="showcaseTitle" style="margin-top: 15px;">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow"><i class="fa-solid fa-gem"></i> Experiencias de Bienestar</p>
+            <h2 id="showcaseTitle">Carta de Tratamientos & Cuidados</h2>
+            <p>Descubre nuestros rituales capilares, colorimetría avanzada, cortes de tendencia y spa de uñas.</p>
+          </div>
+          <button class="primary-action" id="headerBookButton" type="button">
+            <i class="fa-solid fa-calendar-plus"></i> Agendar Cita
+          </button>
+        </div>
+
+        <!-- BARRA DE FILTROS Y BÚSQUEDA DEL CATÁLOGO -->
+        <div class="service-toolbar" style="margin-bottom: 24px;">
+          <label class="search-field" for="catalogSearch">
+            <span aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>
+            <input id="catalogSearch" type="search" placeholder="Buscar por tratamiento, técnica o categoría..." autocomplete="off">
+          </label>
+
+          <select id="categoryFilter" aria-label="Filtrar por categoría">
+            <option value="">Todas las categorías</option>
+          </select>
+
+          <button id="resetCatalogFilters" class="secondary-action reset-btn" type="button" title="Restablecer filtros">
+            Restablecer
+          </button>
+        </div>
+
+        <p class="user-feedback" id="catalogFeedback" role="status"></p>
+
+        <!-- GRID DE SERVICIOS DE BELLEZA -->
+        <div class="showcase-grid" id="showcaseContainer">
+          <!-- Renderizado dinámico desde servicios.js -->
+        </div>
+
+        <div class="empty-users" id="emptyCatalog" hidden>
+          No encontramos tratamientos con el criterio de búsqueda ingresado.
+        </div>
+      </section>
+
+      <p class="dashboard-note">BellaSalón Studio & Spa • Cuidado capilar, estilismo y bienestar profesional.</p>
+    </main>
+  </div>
+
+  <!-- MODAL DE AGENDAR CITA (HUS-06) -->
+  <div class="modal-backdrop" id="reservationModal" hidden>
+    <div class="user-modal reservation-modal" role="dialog" aria-modal="true" aria-labelledby="reservationModalTitle">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">Agendamiento Exclusivo</p>
+          <h2 id="reservationModalTitle">Agendar cita de belleza</h2>
+        </div>
+        <button class="icon-button" id="closeReservationModal" type="button" aria-label="Cerrar modal">×</button>
+      </div>
+
+      <div class="flow-indicator" aria-label="Progreso del agendamiento">
+        <div class="flow-step active" id="flowStep1"><span class="step-num">1</span><span class="step-txt">Servicio</span></div>
+        <span class="flow-arrow" aria-hidden="true">→</span>
+        <div class="flow-step" id="flowStep2"><span class="step-num">2</span><span class="step-txt">Fecha</span></div>
+        <span class="flow-arrow" aria-hidden="true">→</span>
+        <div class="flow-step" id="flowStep3"><span class="step-num">3</span><span class="step-txt">Hora</span></div>
+        <span class="flow-arrow" aria-hidden="true">→</span>
+        <div class="flow-step" id="flowStep4"><span class="step-num">4</span><span class="step-txt">Confirmación</span></div>
+      </div>
+
+      <form id="reservationForm" novalidate>
+        <label for="reservationService">
+          <i class="fa-solid fa-sparkles"></i> Servicio de belleza
+          <select id="reservationService" name="service" required>
+            <option value="" disabled selected>Seleccione un servicio ▼</option>
+          </select>
+        </label>
+
+        <label for="reservationStylist">
+          <i class="fa-solid fa-user-tie"></i> Estilista / Profesional preferido
+          <select id="reservationStylist" name="stylist">
+            <option value="sty-any">Primer profesional disponible</option>
+          </select>
+        </label>
+
+        <div class="form-row">
+          <label for="reservationHairLength">
+            <i class="fa-solid fa-wand-magic"></i> Largo de cabello / Tipo
+            <select id="reservationHairLength" name="hairLength">
+              <option value="Corto">Cabello corto / Barba</option>
+              <option value="Medio" selected>Cabello medio (hombros)</option>
+              <option value="Largo">Cabello largo</option>
+              <option value="Extra largo">Cabello extra largo</option>
+              <option value="Uñas / Spa">Uñas / Manos / Pies</option>
+            </select>
+          </label>
+          <label for="reservationDate">
+            <i class="fa-solid fa-calendar"></i> Fecha de atención
+            <input id="reservationDate" name="date" type="date" required>
+          </label>
+        </div>
+
+        <label for="reservationTime">
+          <i class="fa-solid fa-clock"></i> Hora de cita (Turnos de salón)
+          <select id="reservationTime" name="time" required>
+            <option value="" disabled selected>Seleccione horario ▼</option>
+            <option value="08:00 AM">08:00 AM</option>
+            <option value="08:30 AM">08:30 AM</option>
+            <option value="09:00 AM">09:00 AM</option>
+            <option value="09:30 AM">09:30 AM</option>
+            <option value="10:00 AM">10:00 AM</option>
+            <option value="10:30 AM">10:30 AM</option>
+            <option value="11:00 AM">11:00 AM</option>
+            <option value="11:30 AM">11:30 AM</option>
+            <option value="01:30 PM">01:30 PM</option>
+            <option value="02:00 PM">02:00 PM</option>
+            <option value="02:30 PM">02:30 PM</option>
+            <option value="03:00 PM">03:00 PM</option>
+            <option value="03:30 PM">03:30 PM</option>
+            <option value="04:00 PM">04:00 PM</option>
+            <option value="04:30 PM">04:30 PM</option>
+            <option value="05:00 PM">05:00 PM</option>
+            <option value="05:30 PM">05:30 PM</option>
+          </select>
+        </label>
+
+        <label for="reservationNotes">
+          <i class="fa-solid fa-note-sticky"></i> Indicaciones o preferencias especiales (Alergias, tonos, etc.)
+          <textarea id="reservationNotes" name="notes" rows="2" placeholder="Ej: Sensibilidad a tintes fuertes, deseo ondas suaves al final..."></textarea>
+        </label>
+
+        <div class="reservation-summary" id="reservationSummaryBox">
+          <div class="summary-title">Resumen de tu Experiencia</div>
+          <div class="summary-details">
+            <div class="summary-item">
+              <span class="label">Servicio:</span>
+              <strong id="summaryService">—</strong>
+            </div>
+            <div class="summary-item">
+              <span class="label">Fecha:</span>
+              <strong id="summaryDate">—</strong>
+            </div>
+            <div class="summary-item">
+              <span class="label">Hora:</span>
+              <strong id="summaryTime">—</strong>
+            </div>
+            <div class="summary-item highlight">
+              <span class="label">Tarifa estimada:</span>
+              <strong id="summaryPrice" class="summary-price">$0</strong>
+            </div>
+          </div>
+        </div>
+
+        <p class="modal-error" id="reservationFormError" role="alert"></p>
+
+        <div class="modal-actions">
+          <button class="secondary-action" id="cancelReservationButton" type="button">Cancelar</button>
+          <button class="primary-action" id="confirmReservationButton" type="submit">Confirmar Cita</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL DE CONFIRMACIÓN DE RESERVA EXITOSA (T11) -->
+  <div class="modal-backdrop" id="reservationSuccessModal" hidden>
+    <div class="user-modal confirmation-modal" role="dialog" aria-modal="true" aria-labelledby="confirmationModalTitle">
+      <div class="confirmation-badge" aria-hidden="true">✓</div>
+      <p class="eyebrow">Agendamiento completado</p>
+      <h2 id="confirmationModalTitle">¡Cita agendada con éxito!</h2>
+      <p class="confirmation-subtitle">Te esperamos en BellaSalón Studio & Spa para consentirte.</p>
+
+      <div class="confirmation-ticket">
+        <div class="ticket-row">
+          <span>Código de seguimiento:</span>
+          <strong id="ticketCode">#RES-000000</strong>
+        </div>
+        <div class="ticket-row">
+          <span>Tratamiento:</span>
+          <strong id="ticketService">—</strong>
+        </div>
+        <div class="ticket-row">
+          <span>Profesional asignado:</span>
+          <strong id="ticketStylist">Estilista</strong>
+        </div>
+        <div class="ticket-row">
+          <span>Fecha y Hora:</span>
+          <strong><span id="ticketDate">—</span> a las <span id="ticketTime">—</span></strong>
+        </div>
+        <div class="ticket-row">
+          <span>Valor:</span>
+          <strong id="ticketPrice" class="ticket-price">$0</strong>
+        </div>
+        <div class="ticket-row">
+          <span>Estado inicial:</span>
+          <span class="status-badge pending" id="ticketStatus">Pendiente por confirmar</span>
+        </div>
+      </div>
+
+      <div class="modal-actions center">
+        <a id="whatsappShareBtn" href="#" target="_blank" rel="noopener noreferrer" class="action-btn wa-modal-btn">
+          <i class="fa-brands fa-whatsapp"></i> Confirmar por WhatsApp
+        </a>
+        <a href="reservas.html" class="primary-action" style="text-decoration:none;">Ir a Mis Citas</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="shared.js"></script>
+  <script src="servicios.js"></script>
+</body>
+</html>
