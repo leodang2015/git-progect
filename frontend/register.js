@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	const registerButton = document.getElementById('registerBtn');
 	const fields = [nameInput, emailInput, phoneInput, passwordInput, confirmPasswordInput];
 	const USERS_KEY = 'reservas_users';
-	const MIN_PASSWORD_LENGTH = 6;
+	const MIN_PASSWORD_LENGTH = 8;
 
 	const errorElements = {
 		name: document.getElementById('nameError'),
@@ -19,10 +19,13 @@ document.addEventListener('DOMContentLoaded', () => {
 		captcha: document.getElementById('captchaError')
 	};
 
-	const formMessage = document.createElement('p');
-	formMessage.className = 'form-message';
-	formMessage.setAttribute('role', 'alert');
-	registerForm.prepend(formMessage);
+	const existingMessage = document.getElementById('registerFormMessage');
+	const formMessage = existingMessage || document.createElement('p');
+	if (!existingMessage) {
+		formMessage.className = 'form-message';
+		formMessage.setAttribute('role', 'alert');
+		registerForm.prepend(formMessage);
+	}
 
 	const getUsers = () => {
 		try {
@@ -161,6 +164,13 @@ document.addEventListener('DOMContentLoaded', () => {
 			const data = await response.json();
 
 			if (response.ok) {
+				try {
+					const existingUsers = getUsers();
+					if (!existingUsers.some(u => u.email && u.email.toLowerCase() === email.toLowerCase())) {
+						existingUsers.push({ name, email, phone, role: 'user', status: 'active' });
+						localStorage.setItem(USERS_KEY, JSON.stringify(existingUsers));
+					}
+				} catch {}
 				sessionStorage.setItem('registration_message', 'Registro exitoso. Ahora puedes iniciar sesión.');
 				formMessage.textContent = 'Registro exitoso. Redirigiendo al inicio de sesión...';
 				formMessage.className = 'form-message success';

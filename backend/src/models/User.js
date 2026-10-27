@@ -16,6 +16,11 @@ const userSchema = new mongoose.Schema({
     enum: ['user', 'admin'],
     default: 'user'
   },
+  status: {
+    type: String,
+    enum: ['active', 'inactive'],
+    default: 'active'
+  },
   email: {
     type: String,
     required: [true, 'El correo electrónico es obligatorio'],

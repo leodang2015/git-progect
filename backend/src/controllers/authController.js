@@ -29,6 +29,13 @@ const login = async (req, res) => {
       });
     }
 
+    if (user.status === 'inactive') {
+      return res.status(403).json({
+        success: false,
+        message: 'La cuenta está inactiva'
+      });
+    }
+
     // Comprobar si la cuenta está bloqueada
     if (user.isLocked) {
       return res.status(403).json({
@@ -58,10 +65,13 @@ const login = async (req, res) => {
 
     // Inicio de sesión exitoso, restablecer intentos y lockUntil
     if (user.loginAttempts > 0 || user.lockUntil) {
-      user.loginAttempts = 0;
-      user.lockUntil = undefined;
-      await user.save();
+      await User.updateOne(
+        { _id: user._id },
+        { $set: { loginAttempts: 0 }, $unset: { lockUntil: 1 } }
+      );
     }
+
+    const resolvedName = user.name || (user.role === 'admin' ? 'Administrador' : user.email.split('@')[0]);
 
     // Enviar respuesta con token
     res.json({
@@ -70,7 +80,11 @@ const login = async (req, res) => {
       token: generateToken(user._id),
       user: {
         id: user._id,
-        email: user.email
+        name: resolvedName,
+        email: user.email,
+        role: user.role || 'user',
+        status: user.status || 'active',
+        phone: user.phone || ''
       }
     });
 
