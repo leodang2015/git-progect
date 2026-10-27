@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:match*",
+      "destination": "https://git-progect.vercel.app/api/:match*"
+    }
+  ]
+}
