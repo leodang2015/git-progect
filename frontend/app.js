@@ -6,16 +6,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const emailError = document.getElementById('emailError');
   const passwordError = document.getElementById('passwordError');
-  const formMessage = document.createElement('p');
-  formMessage.className = 'form-message';
-  formMessage.setAttribute('role', 'alert');
-  loginForm.prepend(formMessage);
-
-  const registrationMessage = sessionStorage.getItem('registration_message');
-  if (registrationMessage) {
-    formMessage.textContent = registrationMessage;
-    formMessage.className = 'form-message success';
-    sessionStorage.removeItem('registration_message');
+  const existingMessage = document.getElementById('loginFormMessage');
+  const formMessage = existingMessage || document.createElement('p');
+  if (!existingMessage) {
+    formMessage.className = 'form-message';
+    formMessage.setAttribute('role', 'alert');
+    loginForm.prepend(formMessage);
   }
 
   const USERS_KEY = 'reservas_users';
@@ -35,14 +31,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const saveJson = (key, value) => localStorage.setItem(key, JSON.stringify(value));
 
+  // Inicializar lista demo sin exponer contraseñas en claro
   const users = getJson(USERS_KEY, []);
   if (!users.length) {
     saveJson(USERS_KEY, [{
       name: 'Usuario demo',
       email: 'usuario@ejemplo.com',
-      password: 'Demo123!'
+      role: 'user'
     }]);
   }
+
+  // Toggle para mostrar/ocultar contraseña
+  document.querySelectorAll('.password-toggle').forEach((toggle) => {
+    toggle.addEventListener('click', () => {
+      const input = document.getElementById(toggle.dataset.target);
+      if (!input) return;
+      const showing = input.type === 'text';
+      input.type = showing ? 'password' : 'text';
+      toggle.textContent = showing ? 'Mostrar' : 'Ocultar';
+      toggle.setAttribute('aria-label', `${showing ? 'Mostrar' : 'Ocultar'} contraseña`);
+      toggle.setAttribute('title', `${showing ? 'Mostrar' : 'Ocultar'} contraseña`);
+    });
+  });
 
   const isValidEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -52,9 +62,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const getLoginState = () => getJson(LOGIN_STATE_KEY, { attempts: 0, lockedUntil: 0 });
 
   const showMessage = (message, type = 'error') => {
+    if (!message) {
+      formMessage.textContent = '';
+      formMessage.style.display = 'none';
+      return;
+    }
     formMessage.textContent = message;
     formMessage.className = `form-message ${type}`;
+    formMessage.style.display = 'block';
   };
+
+  const registrationMessage = sessionStorage.getItem('registration_message');
+  if (registrationMessage) {
+    showMessage(registrationMessage, 'success');
+    sessionStorage.removeItem('registration_message');
+  }
 
   const clearErrors = () => {
     emailError.textContent = '';

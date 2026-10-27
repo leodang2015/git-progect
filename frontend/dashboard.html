@@ -7,6 +7,16 @@
   <!-- Iconos de FontAwesome 6 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="styles.css">
+  <script>
+    (function(){
+      try {
+        var s = JSON.parse(localStorage.getItem('reservas_session') || '{}');
+        if (s && s.user && ['admin', 'administrador'].includes(String(s.user.role || '').toLowerCase())) {
+          document.documentElement.classList.add('is-admin');
+        }
+      } catch(e) {}
+    })();
+  </script>
 </head>
 <body class="dashboard-page">
   <div class="dashboard-shell">
@@ -88,7 +98,7 @@
           <span class="trend neutral">En curso <small>pendientes / confirmadas</small></span>
         </article>
         <article class="stat-card" id="kpiCard3">
-          <div class="stat-icon amber"><i class="fa-solid fa-sparkles"></i></div>
+          <div class="stat-icon amber"><i class="fa-solid fa-circle-check"></i></div>
           <p>Servicios Realizados</p>
           <strong>0</strong>
           <span class="trend neutral">Historial <small>experiencias BellaSalón</small></span>

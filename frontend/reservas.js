@@ -353,14 +353,26 @@
 
     // Conmutar vistas
     if (currentViewMode === 'cards') {
-      if (elements.cardsContainer) elements.cardsContainer.hidden = false;
-      if (elements.tableWrap) elements.tableWrap.hidden = true;
+      if (elements.cardsContainer) {
+        elements.cardsContainer.hidden = false;
+        elements.cardsContainer.style.display = 'grid';
+      }
+      if (elements.tableWrap) {
+        elements.tableWrap.hidden = true;
+        elements.tableWrap.style.display = 'none';
+      }
       if (elements.viewCardsBtn) elements.viewCardsBtn.classList.add('active');
       if (elements.viewTableBtn) elements.viewTableBtn.classList.remove('active');
       renderCardsView(paginatedList);
     } else {
-      if (elements.cardsContainer) elements.cardsContainer.hidden = true;
-      if (elements.tableWrap) elements.tableWrap.hidden = false;
+      if (elements.cardsContainer) {
+        elements.cardsContainer.hidden = true;
+        elements.cardsContainer.style.display = 'none';
+      }
+      if (elements.tableWrap) {
+        elements.tableWrap.hidden = false;
+        elements.tableWrap.style.display = 'block';
+      }
       if (elements.viewCardsBtn) elements.viewCardsBtn.classList.remove('active');
       if (elements.viewTableBtn) elements.viewTableBtn.classList.add('active');
       renderTableView(paginatedList);
@@ -463,6 +475,9 @@
 
   if (elements.closeDetailBtn) elements.closeDetailBtn.addEventListener('click', closeDetailModal);
   if (elements.closeDetailBtn2) elements.closeDetailBtn2.addEventListener('click', closeDetailModal);
+  elements.detailModal?.addEventListener('click', (e) => {
+    if (e.target === elements.detailModal) closeDetailModal();
+  });
   if (elements.printDetailBtn) elements.printDetailBtn.addEventListener('click', () => window.print());
 
   // 11. MODAL REPROGRAMAR / EDITAR CITA (HUS-08)
@@ -534,6 +549,9 @@
 
   if (elements.closeEditModalBtn) elements.closeEditModalBtn.addEventListener('click', closeEditModal);
   if (elements.cancelEditModalBtn) elements.cancelEditModalBtn.addEventListener('click', closeEditModal);
+  elements.editModal?.addEventListener('click', (e) => {
+    if (e.target === elements.editModal) closeEditModal();
+  });
 
   elements.editForm?.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -612,6 +630,9 @@
     elements.confirmModal.hidden = true;
   };
   if (elements.cancelConfirmBtn) elements.cancelConfirmBtn.addEventListener('click', closeConfirmModal);
+  elements.confirmModal?.addEventListener('click', (e) => {
+    if (e.target === elements.confirmModal) closeConfirmModal();
+  });
 
   elements.confirmUpdateBtn?.addEventListener('click', () => {
     if (!pendingUpdatePayload) return;
@@ -658,6 +679,9 @@
 
   if (elements.closeCancelModalBtn) elements.closeCancelModalBtn.addEventListener('click', closeCancelModal);
   if (elements.cancelDismissBtn) elements.cancelDismissBtn.addEventListener('click', closeCancelModal);
+  elements.cancelModal?.addEventListener('click', (e) => {
+    if (e.target === elements.cancelModal) closeCancelModal();
+  });
 
   elements.confirmCancelBtn?.addEventListener('click', () => {
     if (!currentCancellingReservation) return;

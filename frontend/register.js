@@ -19,10 +19,13 @@ document.addEventListener('DOMContentLoaded', () => {
 		captcha: document.getElementById('captchaError')
 	};
 
-	const formMessage = document.createElement('p');
-	formMessage.className = 'form-message';
-	formMessage.setAttribute('role', 'alert');
-	registerForm.prepend(formMessage);
+	const existingMessage = document.getElementById('registerFormMessage');
+	const formMessage = existingMessage || document.createElement('p');
+	if (!existingMessage) {
+		formMessage.className = 'form-message';
+		formMessage.setAttribute('role', 'alert');
+		registerForm.prepend(formMessage);
+	}
 
 	const getUsers = () => {
 		try {

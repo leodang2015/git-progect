@@ -79,6 +79,8 @@
       }
 
       if (card3) {
+        const icon = card3.querySelector('.stat-icon i');
+        if (icon) icon.className = 'fa-solid fa-circle-check';
         card3.querySelector('p').textContent = 'Servicios Realizados';
         card3.querySelector('strong').textContent = completedList.length;
         card3.querySelector('.trend').innerHTML = 'Historial <small>experiencias BellaSalón</small>';
@@ -100,6 +102,8 @@
       }
 
       if (card3) {
+        const icon = card3.querySelector('.stat-icon i');
+        if (icon) icon.className = 'fa-solid fa-clock';
         card3.querySelector('p').textContent = 'Citas por Confirmar';
         card3.querySelector('strong').textContent = pendingList.length;
         card3.querySelector('.trend').innerHTML = 'Atención <small>pendientes de revisión</small>';

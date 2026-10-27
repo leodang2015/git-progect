@@ -292,12 +292,13 @@
   };
 
   const normalizeStatus = (status) => {
-    const s = String(status || '').toLowerCase().trim();
+    const s = String(status ?? '').toLowerCase().trim();
+    if (!s) return '';
     if (s === 'confirmada' || s === 'confirmed') return 'confirmed';
     if (s === 'pendiente' || s === 'pending') return 'pending';
     if (s === 'finalizada' || s === 'completed') return 'completed';
     if (s === 'cancelada' || s === 'cancelled') return 'cancelled';
-    return s || 'pending';
+    return s;
   };
 
   const getUserScopeReservations = (allReservations, currentUser, isAdmin) => {
@@ -346,9 +347,20 @@
       }).format(new Date());
     }
 
-    // Ocultar o eliminar opciones exclusivas de administrador para clientes comunes
-    if (!auth.isAdmin) {
-      document.querySelectorAll('.admin-only').forEach(el => el.remove());
+    // Control de opciones exclusivas de administrador para prevenir parpadeo (FOUC)
+    if (auth.isAdmin) {
+      document.documentElement.classList.add('is-admin');
+      document.body.classList.add('is-admin');
+      document.querySelectorAll('.admin-only').forEach(el => {
+        el.removeAttribute('aria-hidden');
+      });
+    } else {
+      document.documentElement.classList.remove('is-admin');
+      document.body.classList.remove('is-admin');
+      document.querySelectorAll('.admin-only').forEach(el => {
+        el.style.display = 'none';
+        el.setAttribute('aria-hidden', 'true');
+      });
     }
 
     // Marcar enlace activo en el menú lateral
@@ -360,13 +372,28 @@
       if (activeLink) activeLink.classList.add('active');
     }
 
-    // Toggle de Menú Móvil
+    // Toggle de Menú Móvil con cierre al hacer click fuera o presionar Escape
     const sidebar = document.getElementById('dashboardSidebar');
     const menuToggle = document.getElementById('menuToggle');
     if (menuToggle && sidebar) {
-      menuToggle.addEventListener('click', () => {
+      menuToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
         const isOpen = sidebar.classList.toggle('open');
         menuToggle.setAttribute('aria-expanded', String(isOpen));
+      });
+
+      document.addEventListener('click', (e) => {
+        if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
+          sidebar.classList.remove('open');
+          menuToggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+          sidebar.classList.remove('open');
+          menuToggle.setAttribute('aria-expanded', 'false');
+        }
       });
     }
 
@@ -453,8 +480,8 @@
       const hasTime = Boolean(timeSelect?.value);
 
       if (flowStep1) flowStep1.className = `flow-step ${hasSrv ? 'completed' : 'active'}`;
-      if (flowStep2) flowStep2.className = `flow-step ${hasSrv && !hasDate ? 'active' : hasDate ? 'completed' : ''}`;
-      if (flowStep3) flowStep3.className = `flow-step ${hasDate && !hasTime ? 'active' : hasTime ? 'completed' : ''}`;
+      if (flowStep2) flowStep2.className = `flow-step ${hasSrv ? (hasDate ? 'completed' : 'active') : ''}`;
+      if (flowStep3) flowStep3.className = `flow-step ${hasSrv && hasDate ? (hasTime ? 'completed' : 'active') : ''}`;
       if (flowStep4) flowStep4.className = `flow-step ${hasSrv && hasDate && hasTime ? 'active' : ''}`;
     };
 
@@ -483,11 +510,9 @@
         serviceSelect.value = preselectedServiceId;
       }
 
-      // Fecha sugerida por defecto: hoy o mañana
+      // No pre-seleccionar fecha automáticamente para respetar el orden de selección
       if (dateInput) {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        dateInput.value = tomorrow.toISOString().split('T')[0];
+        dateInput.value = '';
       }
 
       updateSummary();
@@ -507,6 +532,14 @@
 
     if (closeBtn) closeBtn.addEventListener('click', closeBookingModal);
     if (cancelBtn) cancelBtn.addEventListener('click', closeBookingModal);
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeBookingModal();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.hidden) closeBookingModal();
+    });
 
     // Envío del Formulario
     form.addEventListener('submit', (e) => {
@@ -610,9 +643,19 @@
       }
     });
 
-    if (closeSuccessBtn && successModal) {
-      closeSuccessBtn.addEventListener('click', () => {
-        successModal.hidden = true;
+    if (successModal) {
+      if (closeSuccessBtn) {
+        closeSuccessBtn.addEventListener('click', () => {
+          successModal.hidden = true;
+        });
+      }
+
+      successModal.addEventListener('click', (e) => {
+        if (e.target === successModal) successModal.hidden = true;
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !successModal.hidden) successModal.hidden = true;
       });
     }
 

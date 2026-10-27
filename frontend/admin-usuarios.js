@@ -134,6 +134,9 @@
 
   if (elements.closeBtn) elements.closeBtn.addEventListener('click', closeModal);
   if (elements.cancelBtn) elements.cancelBtn.addEventListener('click', closeModal);
+  elements.modal?.addEventListener('click', (e) => {
+    if (e.target === elements.modal) closeModal();
+  });
 
   // Acciones en la tabla
   elements.body?.addEventListener('click', (e) => {

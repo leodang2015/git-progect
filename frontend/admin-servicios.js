@@ -113,6 +113,9 @@
 
   if (elements.closeBtn) elements.closeBtn.addEventListener('click', closeModal);
   if (elements.cancelBtn) elements.cancelBtn.addEventListener('click', closeModal);
+  elements.modal?.addEventListener('click', (e) => {
+    if (e.target === elements.modal) closeModal();
+  });
 
   // Delegación de eventos para Editar y Eliminar
   elements.grid?.addEventListener('click', (e) => {

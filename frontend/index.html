@@ -24,6 +24,7 @@
       <p class="subtitle">Accede a tu cuenta para agendar y consultar tus citas de belleza</p>
 
       <form id="loginForm" novalidate>
+        <p id="loginFormMessage" class="form-message" role="alert" style="display:none;"></p>
        
         <!-- Campo Correo Electrónico con Icono -->
         <div class="input-group">
@@ -43,12 +44,12 @@
           <span class="error-message" id="emailError"></span>
         </div>
 
-        <!-- Campo Contraseña con Icono -->
+        <!-- Campo Contraseña con Icono y Toggle -->
         <div class="input-group">
           <label for="password">
             <i class="fa-solid fa-lock"></i> Contraseña
           </label>
-          <div class="input-with-icon">
+          <div class="password-field input-with-icon">
             <span class="field-icon" aria-hidden="true"><i class="fa-solid fa-key"></i></span>
             <input 
               type="password" 
@@ -58,6 +59,7 @@
               autocomplete="current-password"
               required
             >
+            <button type="button" class="password-toggle" data-target="password" aria-label="Mostrar contraseña" title="Mostrar contraseña">Mostrar</button>
           </div>
           <span class="error-message" id="passwordError"></span>
         </div>
