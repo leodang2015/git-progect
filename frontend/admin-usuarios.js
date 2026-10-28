@@ -16,7 +16,7 @@
   const {
     getStoredUsers,
     saveStoredUsers,
-    getStoredServices,
+    defaultServices,
     escapeHtml,
     formatDate
   } = window.BellaSalon;
@@ -41,35 +41,161 @@
     stylistFields: document.getElementById('stylistFields'),
     specialty: document.getElementById('userSpecialtyInput'),
     stylistServices: document.getElementById('stylistServicesInput'),
+    saveButton: document.querySelector('#userForm button[type="submit"]'),
     title: document.getElementById('userModalTitle'),
     newBtn: document.getElementById('newUserButton'),
     closeBtn: document.getElementById('closeUserModal'),
     cancelBtn: document.getElementById('cancelUserButton')
   };
 
-  // Inicializar usuarios si está vacío
-  let storedUsers = getStoredUsers();
-  if (!storedUsers.length) {
-    storedUsers.push(
-      {
-        id: 'usr-admin',
-        name: auth.userName || 'Administrador',
-        email: auth.currentUser.email || 'admin@example.com',
-        role: 'admin',
-        status: 'active',
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: 'usr-demo',
-        name: 'Camila Torres',
-        email: 'usuario@ejemplo.com',
-        role: 'user',
-        status: 'active',
-        createdAt: '2026-10-10T12:00:00.000Z'
+  const demoUsers = [
+    { id: 'usr-demo', name: 'Camila Torres', email: 'usuario@ejemplo.com', role: 'user', status: 'active' },
+    { id: 'usr-demo-diego', name: 'Diego Ramírez', email: 'diego@example.com', role: 'user', status: 'active' },
+    { id: 'usr-demo-valentina', name: 'Valentina Cruz', email: 'valentina@example.com', role: 'user', status: 'active' },
+    { id: 'usr-demo-mateo', name: 'Mateo Herrera', email: 'mateo@example.com', role: 'user', status: 'active' },
+    { id: 'usr-demo-laura', name: 'Laura Martínez', email: 'laura@example.com', role: 'user', status: 'active' },
+    {
+      id: 'usr-stylist-sofia',
+      name: 'Sofía Mendoza',
+      email: 'sofia.mendoza@example.com',
+      role: 'stylist',
+      status: 'active',
+      specialty: 'Colorista y especialista en mechas',
+      serviceIds: ['service-3']
+    },
+    {
+      id: 'usr-stylist-mateo',
+      name: 'Mateo Silva',
+      email: 'mateo.silva@example.com',
+      role: 'stylist',
+      status: 'active',
+      specialty: 'Corte, visagismo y estilo',
+      serviceIds: ['service-1']
+    },
+    {
+      id: 'usr-stylist-valentina',
+      name: 'Valentina Ruiz',
+      email: 'valentina.ruiz@example.com',
+      role: 'stylist',
+      status: 'active',
+      specialty: 'Manicura y pedicura spa',
+      serviceIds: ['service-4']
+    },
+    {
+      id: 'usr-stylist-camila',
+      name: 'Camila Gómez',
+      email: 'camila.gomez@example.com',
+      role: 'stylist',
+      status: 'active',
+      specialty: 'Tratamientos capilares y blower',
+      serviceIds: ['service-2']
+    },
+    {
+      id: 'usr-stylist-andres',
+      name: 'Andrés Pardo',
+      email: 'andres.pardo@example.com',
+      role: 'stylist',
+      status: 'active',
+      specialty: 'Barbería y corte clásico',
+      serviceIds: ['service-1']
+    }
+  ];
+
+  const apiHeaders = {
+    Authorization: `Bearer ${auth.session.token}`,
+    'Content-Type': 'application/json'
+  };
+  let mongoServices = [];
+  let isLoading = false;
+
+  const apiRequest = async (path, options = {}) => {
+    const response = await fetch(path, {
+      ...options,
+      headers: { ...apiHeaders, ...options.headers }
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(result.message || result.errores?.[0]?.mensaje || 'No se pudo completar la operación en MongoDB.');
+    }
+    return result;
+  };
+
+  const toFrontendUser = (user) => {
+    const mongoServiceIds = (user.serviceIds || []).map(service => String(service._id || service));
+    const serviceNames = mongoServices
+      .filter(service => mongoServiceIds.includes(String(service.id)))
+      .map(service => service.name);
+    const localServiceIds = defaultServices
+      .filter(service => serviceNames.includes(service.name))
+      .map(service => service.id);
+
+    return {
+      ...user,
+      id: String(user.id || user._id),
+      mongoServiceIds,
+      serviceIds: user.role === 'stylist' ? localServiceIds : []
+    };
+  };
+
+  const getMongoServiceIds = (localServiceIds) => {
+    return localServiceIds.map(String);
+  };
+
+  const ensureDemoServices = async (services) => {
+    const knownNames = new Set(services.map(service => service.name));
+    for (const service of defaultServices) {
+      if (knownNames.has(service.name)) continue;
+      const response = await apiRequest('/api/services', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: service.name,
+          description: service.description,
+          price: service.price,
+          duration: service.duration,
+          image: service.image,
+          category: service.category,
+          isActive: true
+        })
+      });
+      services.push(response.data);
+      knownNames.add(service.name);
+    }
+    return services;
+  };
+
+  const syncDemoUsers = async (users) => {
+    const knownEmails = new Set(users.map(user => user.email.toLowerCase()));
+    for (const demoUser of demoUsers) {
+      if (knownEmails.has(demoUser.email.toLowerCase())) continue;
+
+      const payload = {
+        name: demoUser.name,
+        email: demoUser.email,
+        password: 'Demo123!',
+        role: demoUser.role,
+        status: demoUser.status
+      };
+      if (demoUser.role === 'stylist') {
+        payload.specialty = demoUser.specialty;
+        payload.serviceIds = mongoServices
+          .filter(service => demoUser.serviceIds.some(id =>
+            defaultServices.find(localService => localService.id === id)?.name === service.name
+          ))
+          .map(service => String(service.id));
+        if (!payload.serviceIds.length) {
+          throw new Error(`No se encontró en MongoDB el servicio asignado a ${demoUser.name}. Ejecuta npm run seed en backend.`);
+        }
       }
-    );
-    saveStoredUsers(storedUsers);
-  }
+
+      const response = await apiRequest('/api/users', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      users.push(toFrontendUser(response.data));
+      knownEmails.add(demoUser.email.toLowerCase());
+    }
+    return users;
+  };
 
   // 4. RENDERIZAR TABLA DE USUARIOS
   const loadUsers = () => {
@@ -118,16 +244,40 @@
     if (elements.feedback) elements.feedback.textContent = `${filtered.length} cuenta(s) encontrada(s)`;
   };
 
+  const refreshUsers = async () => {
+    if (isLoading) return;
+    isLoading = true;
+    if (elements.feedback) elements.feedback.textContent = 'Conectando con MongoDB...';
+
+    try {
+      const serviceResponse = await apiRequest('/api/services?limit=100&isActive=true');
+      const services = await ensureDemoServices(serviceResponse.data);
+      mongoServices = services.map(service => ({ ...service, id: String(service.id || service._id) }));
+      const userResponse = await apiRequest('/api/users?limit=100');
+      const users = await syncDemoUsers(userResponse.data.map(toFrontendUser));
+      saveStoredUsers(users);
+      loadUsers();
+    } catch (error) {
+      console.error('Error al sincronizar usuarios con MongoDB:', error);
+      if (elements.feedback) {
+        elements.feedback.textContent = `No se pudieron cargar o guardar los usuarios en MongoDB: ${error.message}`;
+        elements.feedback.style.color = 'var(--error-color)';
+      }
+      loadUsers();
+    } finally {
+      isLoading = false;
+    }
+  };
+
   const renderStylistServices = (selectedIds = []) => {
-    const services = getStoredServices().filter(service => service.status === 'available' || service.isActive !== false);
-    elements.stylistServices.innerHTML = services.length
-      ? services.map(service => `
+    elements.stylistServices.innerHTML = mongoServices.length
+      ? mongoServices.map(service => `
         <label class="stylist-service-option">
-          <input type="checkbox" name="stylistService" value="${escapeHtml(service.id)}" ${selectedIds.includes(service.id) ? 'checked' : ''}>
+          <input type="checkbox" name="stylistService" value="${escapeHtml(service.id)}" ${selectedIds.includes(String(service.id)) ? 'checked' : ''}>
           <span>${escapeHtml(service.name)}${service.category ? ` <small>(${escapeHtml(service.category)})</small>` : ''}</span>
         </label>
       `).join('')
-      : '<p>No hay servicios activos. Crea servicios antes de asignarlos al peluquero.</p>';
+      : '<p>Conecta con MongoDB para cargar los servicios disponibles.</p>';
   };
 
   const updateStylistFields = (selectedIds = []) => {
@@ -148,7 +298,7 @@
       updateStylistFields();
       elements.title.textContent = 'Nuevo Cliente / Usuario';
       elements.password.required = true;
-      elements.password.placeholder = 'Mínimo 6 caracteres';
+      elements.password.placeholder = 'Mínimo 8 caracteres, con mayúscula, minúscula, número y símbolo';
       elements.formError.textContent = '';
       elements.modal.hidden = false;
       elements.name.focus();
@@ -168,7 +318,7 @@
   });
 
   // Acciones en la tabla
-  elements.body?.addEventListener('click', (e) => {
+  elements.body?.addEventListener('click', async (e) => {
     const editBtn = e.target.closest('[data-edit-user]');
     const delBtn = e.target.closest('[data-delete-user]');
     let users = getStoredUsers();
@@ -185,10 +335,10 @@
         elements.userRole.value = u.role || 'user';
         elements.userStatus.value = u.status || 'active';
         elements.specialty.value = u.specialty || '';
-        renderStylistServices(u.serviceIds || []);
-        updateStylistFields(u.serviceIds || []);
+        renderStylistServices(u.mongoServiceIds || []);
+        updateStylistFields(u.mongoServiceIds || []);
         elements.password.required = false;
-        elements.password.placeholder = 'Dejar en blanco para mantener actual';
+        elements.password.placeholder = 'En blanco para conservar la contraseña actual';
         elements.formError.textContent = '';
         elements.modal.hidden = false;
       }
@@ -202,17 +352,30 @@
         return;
       }
       if (window.confirm('¿Seguro que deseas eliminar esta cuenta? Esta acción no se puede revertir.')) {
-        users = users.filter(u => u.id !== delId);
-        saveStoredUsers(users);
-        loadUsers();
+        try {
+          await apiRequest(`/api/users/${encodeURIComponent(delId)}`, { method: 'DELETE' });
+          users = users.filter(u => u.id !== delId);
+          saveStoredUsers(users);
+          loadUsers();
+          if (elements.feedback) {
+            elements.feedback.textContent = 'Usuario eliminado de MongoDB.';
+            elements.feedback.style.color = 'var(--success-color)';
+          }
+        } catch (error) {
+          if (elements.feedback) {
+            elements.feedback.textContent = `No se pudo eliminar el usuario de MongoDB: ${error.message}`;
+            elements.feedback.style.color = 'var(--error-color)';
+          }
+        }
       }
     }
   });
 
   // Guardar (Crear o Actualizar)
-  elements.form?.addEventListener('submit', (e) => {
+  elements.form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     elements.formError.textContent = '';
+    if (isLoading) return;
 
     const nameVal = elements.name.value.trim();
     const emailVal = elements.email.value.trim().toLowerCase();
@@ -257,27 +420,50 @@
     };
 
     if (passVal) {
-      if (passVal.length < 6) {
-        elements.formError.textContent = 'La contraseña debe tener mínimo 6 caracteres.';
+      if (passVal.length < 8 || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/.test(passVal)) {
+        elements.formError.textContent = 'La contraseña debe tener al menos 8 caracteres e incluir mayúscula, minúscula, número y símbolo.';
         return;
       }
       payload.password = passVal;
     }
 
-    if (uid) {
-      const target = users.find(u => u.id === uid);
-      if (target) Object.assign(target, payload);
-    } else {
-      users.push({
-        ...payload,
-        id: `usr-${Date.now()}`,
-        createdAt: new Date().toISOString()
-      });
+    if (!uid && !payload.password) {
+      elements.formError.textContent = 'La contraseña es obligatoria para crear una cuenta.';
+      elements.password.focus();
+      return;
     }
 
-    saveStoredUsers(users);
-    closeModal();
-    loadUsers();
+    isLoading = true;
+    elements.saveButton.disabled = true;
+    elements.saveButton.textContent = 'Guardando en MongoDB...';
+    try {
+      const mongoPayload = {
+        ...payload,
+        serviceIds: payload.role === 'stylist' ? getMongoServiceIds(serviceIds) : []
+      };
+      const result = await apiRequest(uid ? `/api/users/${encodeURIComponent(uid)}` : '/api/users', {
+        method: uid ? 'PUT' : 'POST',
+        body: JSON.stringify(mongoPayload)
+      });
+      const savedUser = toFrontendUser(result.data);
+      const updatedUsers = getStoredUsers();
+      const savedIndex = updatedUsers.findIndex(user => user.id === savedUser.id);
+      if (savedIndex >= 0) updatedUsers[savedIndex] = savedUser;
+      else updatedUsers.push(savedUser);
+      saveStoredUsers(updatedUsers);
+      closeModal();
+      loadUsers();
+      if (elements.feedback) {
+        elements.feedback.textContent = 'Usuario guardado correctamente en MongoDB.';
+        elements.feedback.style.color = 'var(--success-color)';
+      }
+    } catch (error) {
+      elements.formError.textContent = error.message;
+    } finally {
+      isLoading = false;
+      elements.saveButton.disabled = false;
+      elements.saveButton.textContent = 'Guardar cliente';
+    }
   });
 
   // Filtros
@@ -294,5 +480,5 @@
   });
 
   // 6. INICIALIZACIÓN
-  loadUsers();
+  refreshUsers();
 })();

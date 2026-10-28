@@ -12,3 +12,5 @@ La API reutiliza el modelo `User` y está protegida con JWT: todas las rutas req
 Las respuestas de usuarios contienen `id`, `name`, `email`, `role`, `specialty`, `serviceIds`, `status`, `createdAt` y `updatedAt`; nunca exponen la contraseña ni los datos de bloqueo de inicio de sesión. Las contraseñas nuevas o actualizadas se hashean con el middleware existente del modelo. La selección de profesionales en el formulario de citas utiliza los servicios asignados al peluquero.
 
 Ejecuta `npm test` desde `backend/` para validar el esquema de usuario.
+
+El panel administrativo sincroniza con MongoDB los cambios de usuarios y crea los usuarios y servicios de demostración que falten al abrirse por primera vez. También puedes ejecutar `npm run seed` desde `backend/` para cargar los datos de demostración (incluye cinco clientes y cinco peluqueros); las cuentas nuevas usan `Demo123!`. Consulta [../CREDENCIALES_DEMO.md](../CREDENCIALES_DEMO.md) para los correos de prueba. No uses estas credenciales en producción.

@@ -7,34 +7,116 @@ const Activity = require('./src/models/Activity');
 
 const demoUsers = [
   { name: 'Administrador Demo', email: 'admin@example.com', password: 'Demo123!', role: 'admin' },
-  { name: 'Camila Torres', email: 'camila@example.com', password: 'Demo123!', role: 'user' },
+  { name: 'Camila Torres', email: 'usuario@ejemplo.com', password: 'Demo123!', role: 'user' },
   { name: 'Diego Ramírez', email: 'diego@example.com', password: 'Demo123!', role: 'user' },
   { name: 'Valentina Cruz', email: 'valentina@example.com', password: 'Demo123!', role: 'user' },
-  { name: 'Mateo Herrera', email: 'mateo@example.com', password: 'Demo123!', role: 'user' }
+  { name: 'Mateo Herrera', email: 'mateo@example.com', password: 'Demo123!', role: 'user' },
+  { name: 'Laura Martínez', email: 'laura@example.com', password: 'Demo123!', role: 'user' },
+  {
+    name: 'Sofía Mendoza',
+    email: 'sofia.mendoza@example.com',
+    password: 'Demo123!',
+    role: 'stylist',
+    specialty: 'Colorista y especialista en mechas',
+    serviceNames: ['Tinte / Colorimetría']
+  },
+  {
+    name: 'Mateo Silva',
+    email: 'mateo.silva@example.com',
+    password: 'Demo123!',
+    role: 'stylist',
+    specialty: 'Corte, visagismo y estilo',
+    serviceNames: ['Corte de cabello y peinado']
+  },
+  {
+    name: 'Valentina Ruiz',
+    email: 'valentina.ruiz@example.com',
+    password: 'Demo123!',
+    role: 'stylist',
+    specialty: 'Manicura y pedicura spa',
+    serviceNames: ['Manicura y pedicura spa']
+  },
+  {
+    name: 'Camila Gómez',
+    email: 'camila.gomez@example.com',
+    password: 'Demo123!',
+    role: 'stylist',
+    specialty: 'Tratamientos capilares y blower',
+    serviceNames: ['Cepillado y blower']
+  },
+  {
+    name: 'Andrés Pardo',
+    email: 'andres.pardo@example.com',
+    password: 'Demo123!',
+    role: 'stylist',
+    specialty: 'Barbería y corte clásico',
+    serviceNames: ['Corte de cabello y peinado']
+  }
 ];
 
 const demoServices = [
-  { name: 'Sala Norte', description: 'Espacio para reuniones y eventos', price: 120000 },
-  { name: 'Catering empresarial', description: 'Servicio de alimentos para eventos', price: 85000 },
-  { name: 'Sala de juntas', description: 'Sala equipada para reuniones', price: 95000 },
-  { name: 'Equipo audiovisual', description: 'Proyector y sistema de sonido', price: 60000 }
+  {
+    name: 'Corte de cabello y peinado',
+    description: 'Asesoría de visagismo personalizada, lavado nutritivo y peinado profesional.',
+    price: 30000,
+    duration: 45,
+    category: 'Cabello & Peinado'
+  },
+  {
+    name: 'Cepillado y blower',
+    description: 'Lavado capilar, protector térmico y secado profesional.',
+    price: 25000,
+    duration: 40,
+    category: 'Peinados & Brillo'
+  },
+  {
+    name: 'Tinte / Colorimetría',
+    description: 'Diagnóstico de tono, aplicación de tinte y tratamiento sellador de color.',
+    price: 90000,
+    duration: 90,
+    category: 'Color & Brillo'
+  },
+  {
+    name: 'Manicura y pedicura spa',
+    description: 'Exfoliación, hidratación, arreglo de cutículas y esmaltado.',
+    price: 35000,
+    duration: 50,
+    category: 'Uñas & Spa'
+  }
 ];
 
 const seedDemoData = async () => {
   await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/reservasDB');
-
-  const users = [];
-  for (const userData of demoUsers) {
-    let user = await User.findOne({ email: userData.email });
-    if (!user) user = await User.create(userData);
-    users.push(user);
-  }
 
   const services = [];
   for (const serviceData of demoServices) {
     let service = await Service.findOne({ name: serviceData.name });
     if (!service) service = await Service.create(serviceData);
     services.push(service);
+  }
+
+  const users = [];
+  for (const userData of demoUsers) {
+    const userPayload = { ...userData };
+    if (userPayload.serviceNames) {
+      userPayload.serviceIds = userPayload.serviceNames.map((name) => {
+        const service = services.find((item) => item.name === name);
+        if (!service) throw new Error(`No se encontró el servicio asignado: ${name}`);
+        return service._id;
+      });
+      delete userPayload.serviceNames;
+    }
+
+    let user = await User.findOne({ email: userData.email });
+    if (!user) {
+      user = await User.create(userPayload);
+    } else {
+      for (const [field, value] of Object.entries(userPayload)) {
+        if (field !== 'password') user[field] = value;
+      }
+      await user.save();
+    }
+    users.push(user);
   }
 
   if (await Reservation.countDocuments() === 0) {
