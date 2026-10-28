@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Clientes | BellaSalón Studio & Spa</title>
+  <!-- Iconos de FontAwesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    (function(){
+      try {
+        var s = JSON.parse(localStorage.getItem('reservas_session') || '{}');
+        if (s && s.user && ['admin', 'administrador'].includes(String(s.user.role || '').toLowerCase())) {
+          document.documentElement.classList.add('is-admin');
+        }
+      } catch(e) {}
+    })();
+  </script>
+</head>
+<body class="dashboard-page">
+  <div class="dashboard-shell">
+    <!-- MENÚ LATERAL IZQUIERDO -->
+    <aside class="dashboard-sidebar" id="dashboardSidebar" aria-label="Navegación principal">
+      <a class="dashboard-brand" href="dashboard.html" aria-label="Ir al inicio del dashboard">
+        <span class="brand-mark" aria-hidden="true"><i class="fa-solid fa-scissors"></i></span>
+        <span><strong>BellaSalón</strong><small>Studio & Spa</small></span>
+      </a>
+      <nav class="dashboard-nav">
+        <a class="dashboard-nav-link" id="navDashboard" href="dashboard.html">
+          <span aria-hidden="true"><i class="fa-solid fa-house-chimney-window"></i></span>Resumen
+        </a>
+        <a class="dashboard-nav-link" id="navReservas" href="reservas.html">
+          <span aria-hidden="true"><i class="fa-solid fa-calendar-check"></i></span>Mis Citas
+        </a>
+        <a class="dashboard-nav-link" id="navServicios" href="servicios.html">
+          <span aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></span>Carta Belleza
+        </a>
+        <a class="dashboard-nav-link admin-only" id="navAdminServicios" href="admin-servicios.html">
+          <span aria-hidden="true"><i class="fa-solid fa-spa"></i></span>Servicios Admin
+        </a>
+        <a class="dashboard-nav-link admin-only active" id="navAdminUsuarios" href="admin-usuarios.html">
+          <span aria-hidden="true"><i class="fa-solid fa-users"></i></span>Clientes
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <span class="status-dot"></span><span>Salón Abierto • Panel Admin</span>
+      </div>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL: GESTIÓN DE CLIENTES Y USUARIOS -->
+    <main class="dashboard-main">
+      <header class="dashboard-header">
+        <button class="menu-toggle" id="menuToggle" type="button" aria-label="Abrir menú" aria-expanded="false">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div>
+          <p class="eyebrow"><i class="fa-solid fa-shield-halved"></i> Control Administrativo</p>
+          <h1>Directorio de Clientes & Personal</h1>
+        </div>
+        <div class="header-actions">
+          <a href="https://wa.me/573001234567" target="_blank" rel="noopener noreferrer" class="salon-help-chip" title="Atención directa por WhatsApp">
+            <i class="fa-brands fa-whatsapp"></i> <span>Recepción Spa</span>
+          </a>
+          <div class="user-chip">
+            <span class="avatar" id="userInitials">A</span>
+            <span><strong id="userName">Administrador</strong><small id="userRole">Administrador</small></span>
+          </div>
+          <button class="logout-button" id="logoutButton" type="button" title="Cerrar sesión">
+            <span aria-hidden="true"><i class="fa-solid fa-arrow-right-from-bracket"></i></span>
+            <span class="logout-label">Salir</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- GESTIÓN DE USUARIOS / CLIENTES -->
+      <section class="user-management" id="usuarios" aria-labelledby="usersTitle" style="margin-top: 15px;">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow"><i class="fa-solid fa-users"></i> Directorio BellaSalón</p>
+            <h2 id="usersTitle">Gestión de Clientes y Cuentas</h2>
+            <p>Supervisa clientes registrados, accesos del personal administrativo y estado de actividad.</p>
+          </div>
+          <button class="primary-action" id="newUserButton" type="button">
+            <i class="fa-solid fa-user-plus"></i> Nuevo cliente / usuario
+          </button>
+        </div>
+
+        <div class="user-toolbar">
+          <label class="search-field" for="userSearch">
+            <span aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>
+            <input id="userSearch" type="search" placeholder="Buscar por nombre o correo electrónico..." autocomplete="off">
+          </label>
+          <select id="roleFilter" aria-label="Filtrar por rol">
+            <option value="">Todos los roles</option>
+            <option value="admin">Administrador</option>
+            <option value="user">Cliente</option>
+          </select>
+          <select id="statusFilter" aria-label="Filtrar por estado">
+            <option value="">Todos los estados</option>
+            <option value="active">Activo</option>
+            <option value="inactive">Inactivo</option>
+          </select>
+        </div>
+
+        <p class="user-feedback" id="userFeedback" role="status"></p>
+
+        <div class="users-table-wrap">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th><i class="fa-solid fa-user"></i> Nombre</th>
+                <th><i class="fa-solid fa-envelope"></i> Correo Electrónico</th>
+                <th><i class="fa-solid fa-shield"></i> Rol</th>
+                <th><i class="fa-solid fa-circle-dot"></i> Estado</th>
+                <th><i class="fa-solid fa-calendar"></i> Fecha registro</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+          <div class="empty-users" id="emptyUsers" hidden>
+            No se encontraron usuarios o clientes con los filtros aplicados.
+          </div>
+        </div>
+      </section>
+
+      <p class="dashboard-note">BellaSalón Studio & Spa • Cuidado capilar, estilismo y bienestar profesional.</p>
+    </main>
+  </div>
+
+  <!-- MODAL USUARIO / CLIENTE (ADMIN) -->
+  <div class="modal-backdrop" id="userModal" hidden>
+    <form class="user-modal" id="userForm">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">Cuenta & Accesos</p>
+          <h2 id="userModalTitle">Nuevo usuario</h2>
+        </div>
+        <button class="icon-button" id="closeUserModal" type="button" aria-label="Cerrar modal">×</button>
+      </div>
+
+      <input id="userId" type="hidden">
+
+      <label>
+        Nombre completo
+        <input id="userNameInput" name="name" required placeholder="Ej: Diana Marcela Gómez">
+      </label>
+
+      <label>
+        Correo electrónico
+        <input id="userEmailInput" name="email" type="email" required placeholder="diana@ejemplo.com">
+      </label>
+
+      <label>
+        Contraseña
+        <input id="userPasswordInput" name="password" type="password" minlength="6" placeholder="Mínimo 6 caracteres (dejar en blanco para conservar)">
+      </label>
+
+      <div class="form-row">
+        <label>
+          Rol en la plataforma
+          <select id="userRoleInput" name="role">
+            <option value="user">Cliente</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </label>
+        <label>
+          Estado de la cuenta
+          <select id="userStatusInput" name="status">
+            <option value="active">Activo</option>
+            <option value="inactive">Inactivo</option>
+          </select>
+        </label>
+      </div>
+
+      <p class="modal-error" id="userFormError" role="alert"></p>
+
+      <div class="modal-actions">
+        <button class="secondary-action" id="cancelUserButton" type="button">Cancelar</button>
+        <button class="primary-action" type="submit">Guardar cliente</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="shared.js"></script>
+  <script src="admin-usuarios.js"></script>
+</body>
+</html>

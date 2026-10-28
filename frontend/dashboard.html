@@ -3,448 +3,361 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard | Sistema de Reservas</title>
+  <title>Panel de Resumen | BellaSalón Studio & Spa</title>
+  <!-- Iconos de FontAwesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="styles.css">
+  <script>
+    (function(){
+      try {
+        var s = JSON.parse(localStorage.getItem('reservas_session') || '{}');
+        if (s && s.user && ['admin', 'administrador'].includes(String(s.user.role || '').toLowerCase())) {
+          document.documentElement.classList.add('is-admin');
+        }
+      } catch(e) {}
+    })();
+  </script>
 </head>
 <body class="dashboard-page">
   <div class="dashboard-shell">
+    <!-- MENÚ LATERAL IZQUIERDO MODULAR -->
     <aside class="dashboard-sidebar" id="dashboardSidebar" aria-label="Navegación principal">
       <a class="dashboard-brand" href="dashboard.html" aria-label="Ir al inicio del dashboard">
-        <span class="brand-mark" aria-hidden="true">SR</span>
-        <span><strong>Reserva</strong><small>Panel operativo</small></span>
+        <span class="brand-mark" aria-hidden="true"><i class="fa-solid fa-scissors"></i></span>
+        <span><strong>BellaSalón</strong><small>Studio & Spa</small></span>
       </a>
       <nav class="dashboard-nav">
-        <a class="dashboard-nav-link active" href="#overview"><span aria-hidden="true">⌂</span>Resumen</a>
-        <a class="dashboard-nav-link" href="#reservas"><span aria-hidden="true">▣</span>Reservas</a>
-        <a class="dashboard-nav-link" href="#gestion-servicios"><span aria-hidden="true">◇</span>Servicios</a>
-        <a class="dashboard-nav-link admin-only" href="#usuarios"><span aria-hidden="true">♧</span>Usuarios</a>
+        <a class="dashboard-nav-link active" id="navDashboard" href="dashboard.html">
+          <span aria-hidden="true"><i class="fa-solid fa-house-chimney-window"></i></span>Resumen
+        </a>
+        <a class="dashboard-nav-link" id="navReservas" href="reservas.html">
+          <span aria-hidden="true"><i class="fa-solid fa-calendar-check"></i></span>Mis Citas
+        </a>
+        <a class="dashboard-nav-link" id="navServicios" href="servicios.html">
+          <span aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></span>Carta Belleza
+        </a>
+        <a class="dashboard-nav-link admin-only" id="navAdminServicios" href="admin-servicios.html">
+          <span aria-hidden="true"><i class="fa-solid fa-spa"></i></span>Servicios Admin
+        </a>
+        <a class="dashboard-nav-link admin-only" id="navAdminUsuarios" href="admin-usuarios.html">
+          <span aria-hidden="true"><i class="fa-solid fa-users"></i></span>Clientes
+        </a>
       </nav>
       <div class="sidebar-footer">
-        <span class="status-dot"></span><span>Servicio activo</span>
+        <span class="status-dot"></span><span>Salón Abierto • Atención Activa</span>
       </div>
     </aside>
 
+    <!-- ÁREA PRINCIPAL: RESUMEN DEL SALÓN -->
     <main class="dashboard-main" id="overview">
       <header class="dashboard-header">
-        <button class="menu-toggle" id="menuToggle" type="button" aria-label="Abrir menú" aria-expanded="false">☰</button>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-label="Abrir menú" aria-expanded="false">
+          <i class="fa-solid fa-bars"></i>
+        </button>
         <div>
-          <p class="eyebrow">Vista general</p>
-          <h1>Panel de control</h1>
+          <p class="eyebrow"><i class="fa-solid fa-crown"></i> Salón de Belleza & Spa</p>
+          <h1>Panel de Resumen & Estilo</h1>
         </div>
         <div class="header-actions">
+          <a href="https://wa.me/573001234567" target="_blank" rel="noopener noreferrer" class="salon-help-chip" title="Atención directa por WhatsApp">
+            <i class="fa-brands fa-whatsapp"></i> <span>Recepción Spa</span>
+          </a>
           <div class="user-chip">
             <span class="avatar" id="userInitials">U</span>
-            <span><strong id="userName">Usuario</strong><small id="userRole">Usuario</small></span>
+            <span><strong id="userName">Usuario</strong><small id="userRole">Cliente</small></span>
           </div>
-          <button class="logout-button" id="logoutButton" type="button" title="Cerrar sesión"><span aria-hidden="true">↪</span><span class="logout-label">Salir</span></button>
+          <button class="logout-button" id="logoutButton" type="button" title="Cerrar sesión">
+            <span aria-hidden="true"><i class="fa-solid fa-arrow-right-from-bracket"></i></span>
+            <span class="logout-label">Salir</span>
+          </button>
         </div>
       </header>
 
+      <!-- FRANJA DE BIENVENIDA -->
       <section class="welcome-strip" aria-labelledby="welcomeTitle">
-        <div><p class="eyebrow">Hoy, <span id="currentDate"></span></p><h2 id="welcomeTitle">Buenos días, <span id="welcomeName">usuario</span>.</h2><p>Este es el estado de tu operación en un vistazo.</p></div>
-        <div class="welcome-icon" aria-hidden="true">✦</div>
+        <div>
+          <p class="eyebrow">Hoy, <span id="currentDate"></span></p>
+          <h2 id="welcomeTitle"><span id="welcomeGreeting">Buenos días</span>, <span id="welcomeName">usuario</span>.</h2>
+          <p id="welcomeDescription">¡Es momento de consentirte! Consulta tus próximas citas programadas o agenda un nuevo servicio con nuestros estilistas expertos.</p>
+        </div>
+        <div class="welcome-icon" aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
       </section>
 
+      <!-- TARJETAS ESTADÍSTICAS INTELIGENTES (KPIs adaptados por rol) -->
       <section class="stats-grid" aria-label="Estadísticas principales">
-        <article class="stat-card"><div class="stat-icon teal">▣</div><p>Reservas activas</p><strong>0</strong><span class="trend neutral">En curso <small>pendientes o confirmadas</small></span></article>
-        <article class="stat-card"><div class="stat-icon blue">◇</div><p>Servicios disponibles</p><strong>0</strong><span class="trend neutral">En catálogo <small>servicios activos</small></span></article>
-        <article class="stat-card"><div class="stat-icon amber">◷</div><p>Reservas pendientes</p><strong>0</strong><span class="trend neutral">Requieren atención <small>por confirmar</small></span></article>
-        <article class="stat-card admin-only"><div class="stat-icon coral">♧</div><p>Usuarios registrados</p><strong>0</strong><span class="trend neutral">Perfiles <small>registrados</small></span></article>
+        <article class="stat-card" id="kpiCard1">
+          <div class="stat-icon teal"><i class="fa-solid fa-calendar-days"></i></div>
+          <p>Próxima Cita</p>
+          <strong>Cargando...</strong>
+          <span class="trend neutral">Agenda de belleza</span>
+        </article>
+        <article class="stat-card" id="kpiCard2">
+          <div class="stat-icon blue"><i class="fa-solid fa-scissors"></i></div>
+          <p>Citas Activas</p>
+          <strong>0</strong>
+          <span class="trend neutral">En curso <small>pendientes / confirmadas</small></span>
+        </article>
+        <article class="stat-card" id="kpiCard3">
+          <div class="stat-icon amber"><i class="fa-solid fa-circle-check"></i></div>
+          <p>Servicios Realizados</p>
+          <strong>0</strong>
+          <span class="trend neutral">Historial <small>experiencias BellaSalón</small></span>
+        </article>
+        <article class="stat-card admin-only" id="kpiCard4">
+          <div class="stat-icon coral"><i class="fa-solid fa-heart"></i></div>
+          <p>Facturado en Citas</p>
+          <strong>$0</strong>
+          <span class="trend neutral">Comunidad <small>BellaSalón</small></span>
+        </article>
       </section>
 
-      <section class="dashboard-columns">
-        <article class="panel activity-panel" id="reservas">
-          <div class="panel-heading"><div><p class="eyebrow">Seguimiento</p><h2>Actividad reciente</h2></div><button class="text-button" type="button">Ver todo <span aria-hidden="true">→</span></button></div>
-          <div class="activity-list" aria-live="polite"><p class="activity-empty">Cargando actividad...</p></div>
-        </article>
-        <article class="panel quick-panel" id="servicios">
-          <div class="panel-heading"><div><p class="eyebrow">Accesos</p><h2>Acciones rápidas</h2></div></div>
-          <div class="quick-actions"><button type="button"><span class="quick-icon teal">+</span><span><strong>Nueva reserva</strong><small>Agenda un espacio</small></span><span aria-hidden="true">→</span></button><button type="button"><span class="quick-icon blue">◇</span><span><strong>Explorar servicios</strong><small>Consulta el catálogo</small></span><span aria-hidden="true">→</span></button><button class="admin-only" type="button"><span class="quick-icon coral">♧</span><span><strong>Gestionar usuarios</strong><small>Administra perfiles</small></span><span aria-hidden="true">→</span></button></div>
-        </article>
-      </section>
-      <section class="user-management admin-only" id="usuarios" aria-labelledby="usersTitle">
-        <div class="section-heading">
-          <div><p class="eyebrow">Directorio</p><h2 id="usersTitle">Gestión de usuarios</h2><p>Administra accesos, roles y estados de las cuentas.</p></div>
-          <button class="primary-action" id="newUserButton" type="button"><span aria-hidden="true">+</span> Nuevo usuario</button>
-        </div>
-        <div class="user-toolbar">
-          <label class="search-field" for="userSearch"><span aria-hidden="true">⌕</span><input id="userSearch" type="search" placeholder="Buscar por nombre o correo" autocomplete="off"></label>
-          <select id="roleFilter" aria-label="Filtrar por rol"><option value="">Todos los roles</option><option value="admin">Administrador</option><option value="user">Usuario</option></select>
-          <select id="statusFilter" aria-label="Filtrar por estado"><option value="">Todos los estados</option><option value="active">Activo</option><option value="inactive">Inactivo</option><option value="pending">Pendiente</option></select>
-        </div>
-        <p class="user-feedback" id="userFeedback" role="status"></p>
-        <div class="users-table-wrap">
-          <table class="users-table"><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Fecha de registro</th><th><span class="sr-only">Acciones</span></th></tr></thead><tbody id="usersTableBody"></tbody></table>
-          <div class="empty-users" id="emptyUsers" hidden>No se encontraron usuarios con estos filtros.</div>
-        </div>
-      </section>
-      <section class="service-management admin-only" id="gestion-servicios" aria-labelledby="servicesTitle">
-        <div class="section-heading">
-          <div><p class="eyebrow">Catálogo</p><h2 id="servicesTitle">Gestión de servicios</h2><p>Administra la oferta disponible para las reservas.</p></div>
-          <button class="primary-action" id="newServiceButton" type="button"><span aria-hidden="true">+</span> Nuevo servicio</button>
-        </div>
-        <div class="service-toolbar">
-          <label class="search-field" for="serviceSearch"><span aria-hidden="true">⌕</span><input id="serviceSearch" type="search" placeholder="Buscar servicio o categoría" autocomplete="off"></label>
-          <select id="serviceStatusFilter" aria-label="Filtrar servicios por estado"><option value="">Todos los estados</option><option value="available">Disponible</option><option value="inactive">Inactivo</option></select>
-        </div>
-        <p class="user-feedback" id="serviceFeedback" role="status"></p>
-        <div class="service-grid" id="serviceGrid"></div>
-        <div class="empty-users" id="emptyServices" hidden>No se encontraron servicios con estos filtros.</div>
-      </section>
-      <p class="dashboard-note">La actividad y las estadísticas se cargan desde la base de datos.</p>
+      <!-- DISTRIBUCIÓN EN 2 COLUMNAS: PRÓXIMAS CITAS Y ACCESOS RÁPIDOS -->
+      <div class="dashboard-columns">
+        <!-- COLUMNA 1: PRÓXIMAS CITAS / ACTIVIDAD RECIENTE -->
+        <section class="panel" aria-labelledby="recentAppointmentsTitle">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow"><i class="fa-solid fa-clock-rotate-left"></i> Tu Agenda</p>
+              <h2 id="recentAppointmentsTitle">Próximas Citas Programadas</h2>
+            </div>
+            <a class="text-button" href="reservas.html">Ver todas las citas →</a>
+          </div>
+
+          <div class="activity-list" id="overviewAppointmentsList">
+            <!-- Renderizado dinámico desde dashboard.js -->
+          </div>
+        </section>
+
+        <!-- COLUMNA 2: ACCESOS RÁPIDOS Y EXPERIENCIAS -->
+        <section class="panel" aria-labelledby="quickActionsTitle">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow"><i class="fa-solid fa-compass"></i> Acciones Inmediatas</p>
+              <h2 id="quickActionsTitle">Accesos Rápidos</h2>
+            </div>
+          </div>
+
+          <div class="quick-actions">
+            <button type="button" id="quickNewReservationBtn">
+              <span class="quick-icon" style="background:#f9eaed; color:#b86b77;"><i class="fa-solid fa-calendar-plus"></i></span>
+              <span>
+                <strong>Agendar Cita de Belleza</strong>
+                <small>Reserva turno con tu profesional favorito</small>
+              </span>
+              <i class="fa-solid fa-chevron-right" style="color:var(--text-dim); font-size:12px;"></i>
+            </button>
+
+            <a href="servicios.html" style="text-decoration:none;">
+              <button type="button">
+                <span class="quick-icon" style="background:#faf4ed; color:#c29562;"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                <span>
+                  <strong>Explorar Carta de Belleza</strong>
+                  <small>Ver tratamientos capilares, color y spa</small>
+                </span>
+                <i class="fa-solid fa-chevron-right" style="color:var(--text-dim); font-size:12px;"></i>
+              </button>
+            </a>
+
+            <a href="admin-servicios.html" class="admin-only" style="text-decoration:none;">
+              <button type="button">
+                <span class="quick-icon" style="background:#fdf0f2; color:#b86b77;"><i class="fa-solid fa-spa"></i></span>
+                <span>
+                  <strong>Administrar Menú de Servicios</strong>
+                  <small>Gestionar precios, tiempos y tarifas</small>
+                </span>
+                <i class="fa-solid fa-chevron-right" style="color:var(--text-dim); font-size:12px;"></i>
+              </button>
+            </a>
+
+            <a href="admin-usuarios.html" class="admin-only" style="text-decoration:none;">
+              <button type="button">
+                <span class="quick-icon" style="background:#edf7f2; color:#277958;"><i class="fa-solid fa-users"></i></span>
+                <span>
+                  <strong>Directorio de Clientes & Personal</strong>
+                  <small>Supervisar usuarios registrados y accesos</small>
+                </span>
+                <i class="fa-solid fa-chevron-right" style="color:var(--text-dim); font-size:12px;"></i>
+              </button>
+            </a>
+
+            <a href="https://wa.me/573001234567" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+              <button type="button">
+                <span class="quick-icon" style="background:#e8f7ee; color:#25d366;"><i class="fa-brands fa-whatsapp"></i></span>
+                <span>
+                  <strong>Atención por WhatsApp</strong>
+                  <small>Consultas directas con recepción del spa</small>
+                </span>
+                <i class="fa-solid fa-chevron-right" style="color:var(--text-dim); font-size:12px;"></i>
+              </button>
+            </a>
+          </div>
+        </section>
+      </div>
+
+      <p class="dashboard-note">BellaSalón Studio & Spa • Cuidado capilar, estilismo y bienestar profesional.</p>
     </main>
   </div>
 
-  <div class="modal-backdrop" id="userModal" hidden>
-    <form class="user-modal" id="userForm">
-      <div class="modal-heading"><div><p class="eyebrow">Cuenta</p><h2 id="userModalTitle">Nuevo usuario</h2></div><button class="icon-button" id="closeUserModal" type="button" aria-label="Cerrar">×</button></div>
-      <input id="userId" type="hidden">
-      <label>Nombre completo<input id="userNameInput" name="name" required></label>
-      <label>Correo electrónico<input id="userEmailInput" name="email" type="email" required></label>
-      <label>Contraseña<input id="userPasswordInput" name="password" type="password" minlength="6" placeholder="Mínimo 6 caracteres"></label>
-      <div class="form-row"><label>Rol<select id="userRoleInput" name="role"><option value="user">Usuario</option><option value="admin">Administrador</option></select></label><label>Estado<select id="userStatusInput" name="status"><option value="active">Activo</option><option value="inactive">Inactivo</option><option value="pending">Pendiente</option></select></label></div>
-      <p class="modal-error" id="userFormError" role="alert"></p>
-      <div class="modal-actions"><button class="secondary-action" id="cancelUserButton" type="button">Cancelar</button><button class="primary-action" type="submit">Guardar usuario</button></div>
-    </form>
+  <!-- MODAL DE AGENDAR CITA (HUS-06) -->
+  <div class="modal-backdrop" id="reservationModal" hidden>
+    <div class="user-modal reservation-modal" role="dialog" aria-modal="true" aria-labelledby="reservationModalTitle">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">Agendamiento Exclusivo</p>
+          <h2 id="reservationModalTitle">Agendar cita de belleza</h2>
+        </div>
+        <button class="icon-button" id="closeReservationModal" type="button" aria-label="Cerrar modal">×</button>
+      </div>
+
+      <div class="flow-indicator" aria-label="Progreso del agendamiento">
+        <div class="flow-step active" id="flowStep1"><span class="step-num">1</span><span class="step-txt">Servicio</span></div>
+        <span class="flow-arrow" aria-hidden="true">→</span>
+        <div class="flow-step" id="flowStep2"><span class="step-num">2</span><span class="step-txt">Fecha</span></div>
+        <span class="flow-arrow" aria-hidden="true">→</span>
+        <div class="flow-step" id="flowStep3"><span class="step-num">3</span><span class="step-txt">Hora</span></div>
+        <span class="flow-arrow" aria-hidden="true">→</span>
+        <div class="flow-step" id="flowStep4"><span class="step-num">4</span><span class="step-txt">Confirmación</span></div>
+      </div>
+
+      <form id="reservationForm" novalidate>
+        <label for="reservationService">
+          <i class="fa-solid fa-sparkles"></i> Servicio de belleza
+          <select id="reservationService" name="service" required>
+            <option value="" disabled selected>Seleccione un servicio ▼</option>
+          </select>
+        </label>
+
+        <label for="reservationStylist">
+          <i class="fa-solid fa-user-tie"></i> Estilista / Profesional preferido
+          <select id="reservationStylist" name="stylist">
+            <option value="sty-any">Primer profesional disponible</option>
+          </select>
+        </label>
+
+        <div class="form-row">
+          <label for="reservationHairLength">
+            <i class="fa-solid fa-wand-magic"></i> Largo de cabello / Tipo
+            <select id="reservationHairLength" name="hairLength">
+              <option value="Corto">Cabello corto / Barba</option>
+              <option value="Medio" selected>Cabello medio (hombros)</option>
+              <option value="Largo">Cabello largo</option>
+              <option value="Extra largo">Cabello extra largo</option>
+              <option value="Uñas / Spa">Uñas / Manos / Pies</option>
+            </select>
+          </label>
+          <label for="reservationDate">
+            <i class="fa-solid fa-calendar"></i> Fecha de atención
+            <input id="reservationDate" name="date" type="date" required>
+          </label>
+        </div>
+
+        <label for="reservationTime">
+          <i class="fa-solid fa-clock"></i> Hora de cita (Turnos de salón)
+          <select id="reservationTime" name="time" required>
+            <option value="" disabled selected>Seleccione horario ▼</option>
+            <option value="08:00 AM">08:00 AM</option>
+            <option value="08:30 AM">08:30 AM</option>
+            <option value="09:00 AM">09:00 AM</option>
+            <option value="09:30 AM">09:30 AM</option>
+            <option value="10:00 AM">10:00 AM</option>
+            <option value="10:30 AM">10:30 AM</option>
+            <option value="11:00 AM">11:00 AM</option>
+            <option value="11:30 AM">11:30 AM</option>
+            <option value="01:30 PM">01:30 PM</option>
+            <option value="02:00 PM">02:00 PM</option>
+            <option value="02:30 PM">02:30 PM</option>
+            <option value="03:00 PM">03:00 PM</option>
+            <option value="03:30 PM">03:30 PM</option>
+            <option value="04:00 PM">04:00 PM</option>
+            <option value="04:30 PM">04:30 PM</option>
+            <option value="05:00 PM">05:00 PM</option>
+            <option value="05:30 PM">05:30 PM</option>
+          </select>
+        </label>
+
+        <label for="reservationNotes">
+          <i class="fa-solid fa-note-sticky"></i> Indicaciones o preferencias especiales (Alergias, tonos, etc.)
+          <textarea id="reservationNotes" name="notes" rows="2" placeholder="Ej: Sensibilidad a tintes fuertes, deseo ondas suaves al final..."></textarea>
+        </label>
+
+        <div class="reservation-summary" id="reservationSummaryBox">
+          <div class="summary-title">Resumen de tu Experiencia</div>
+          <div class="summary-details">
+            <div class="summary-item">
+              <span class="label">Servicio:</span>
+              <strong id="summaryService">—</strong>
+            </div>
+            <div class="summary-item">
+              <span class="label">Fecha:</span>
+              <strong id="summaryDate">—</strong>
+            </div>
+            <div class="summary-item">
+              <span class="label">Hora:</span>
+              <strong id="summaryTime">—</strong>
+            </div>
+            <div class="summary-item highlight">
+              <span class="label">Tarifa estimada:</span>
+              <strong id="summaryPrice" class="summary-price">$0</strong>
+            </div>
+          </div>
+        </div>
+
+        <p class="modal-error" id="reservationFormError" role="alert"></p>
+
+        <div class="modal-actions">
+          <button class="secondary-action" id="cancelReservationButton" type="button">Cancelar</button>
+          <button class="primary-action" id="confirmReservationButton" type="submit">Confirmar Cita</button>
+        </div>
+      </form>
+    </div>
   </div>
-  <div class="modal-backdrop" id="serviceModal" hidden>
-    <form class="user-modal" id="serviceForm">
-      <div class="modal-heading"><div><p class="eyebrow">Catálogo</p><h2 id="serviceModalTitle">Nuevo servicio</h2></div><button class="icon-button" id="closeServiceModal" type="button" aria-label="Cerrar">×</button></div>
-      <input id="serviceId" type="hidden">
-      <label>Nombre del servicio<input id="serviceNameInput" required></label>
-      <label>Descripción<textarea id="serviceDescriptionInput" rows="3" required></textarea></label>
-      <div class="form-row"><label>Precio<input id="servicePriceInput" type="number" min="0" step="100" required></label><label>Duración (minutos)<input id="serviceDurationInput" type="number" min="1" required></label></div>
-      <div class="form-row"><label>Categoría<input id="serviceCategoryInput" required></label><label>Estado<select id="serviceStatusInput"><option value="available">Disponible</option><option value="inactive">Inactivo</option></select></label></div>
-      <label>Imagen opcional (URL)<input id="serviceImageInput" type="url" placeholder="https://..."></label>
-      <p class="modal-error" id="serviceFormError" role="alert"></p>
-      <div class="modal-actions"><button class="secondary-action" id="cancelServiceButton" type="button">Cancelar</button><button class="primary-action" type="submit">Guardar servicio</button></div>
-    </form>
+
+  <!-- MODAL DE CONFIRMACIÓN DE RESERVA EXITOSA (T11) -->
+  <div class="modal-backdrop" id="reservationSuccessModal" hidden>
+    <div class="user-modal confirmation-modal" role="dialog" aria-modal="true" aria-labelledby="confirmationModalTitle">
+      <div class="confirmation-badge" aria-hidden="true">✓</div>
+      <p class="eyebrow">Agendamiento completado</p>
+      <h2 id="confirmationModalTitle">¡Cita agendada con éxito!</h2>
+      <p class="confirmation-subtitle">Te esperamos en BellaSalón Studio & Spa para consentirte.</p>
+
+      <div class="confirmation-ticket">
+        <div class="ticket-row">
+          <span>Código de seguimiento:</span>
+          <strong id="ticketCode">#RES-000000</strong>
+        </div>
+        <div class="ticket-row">
+          <span>Tratamiento:</span>
+          <strong id="ticketService">—</strong>
+        </div>
+        <div class="ticket-row">
+          <span>Profesional asignado:</span>
+          <strong id="ticketStylist">Estilista</strong>
+        </div>
+        <div class="ticket-row">
+          <span>Fecha y Hora:</span>
+          <strong><span id="ticketDate">—</span> a las <span id="ticketTime">—</span></strong>
+        </div>
+        <div class="ticket-row">
+          <span>Valor:</span>
+          <strong id="ticketPrice" class="ticket-price">$0</strong>
+        </div>
+        <div class="ticket-row">
+          <span>Estado inicial:</span>
+          <span class="status-badge pending" id="ticketStatus">Pendiente por confirmar</span>
+        </div>
+      </div>
+
+      <div class="modal-actions center">
+        <a id="whatsappShareBtn" href="#" target="_blank" rel="noopener noreferrer" class="action-btn wa-modal-btn">
+          <i class="fa-brands fa-whatsapp"></i> Confirmar por WhatsApp
+        </a>
+        <button class="primary-action" id="closeSuccessModalButton" type="button">Aceptar</button>
+      </div>
+    </div>
   </div>
 
-  <script>
-    const SESSION_KEY = 'reservas_session';
-    const getSession = () => {
-      try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch (error) { return null; }
-    };
-    const session = getSession();
-    const hasValidSession = session && typeof session.token === 'string' && session.token && Number(session.expiresAt) > Date.now() && session.user;
-
-    if (!hasValidSession) {
-      localStorage.removeItem(SESSION_KEY);
-      window.location.replace('index.html');
-    } else {
-      const user = session.user;
-      const name = String(user.name || 'Usuario').trim();
-      const role = String(user.role || 'Usuario');
-      const isAdmin = ['admin', 'administrador'].includes(role.toLowerCase());
-      const initials = name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
-      
-      document.getElementById('userName').textContent = name;
-      document.getElementById('userRole').textContent = role;
-      document.getElementById('welcomeName').textContent = name.split(/\s+/)[0];
-      document.getElementById('userInitials').textContent = initials || 'U';
-      document.getElementById('currentDate').textContent = new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
-      
-      if (!isAdmin) document.querySelectorAll('.admin-only').forEach((element) => element.remove());
-
-      document.getElementById('logoutButton').addEventListener('click', () => {
-        localStorage.removeItem(SESSION_KEY);
-        window.location.replace('index.html');
-      });
-
-      const sidebar = document.getElementById('dashboardSidebar');
-      const menuToggle = document.getElementById('menuToggle');
-      menuToggle.addEventListener('click', () => {
-        const isOpen = sidebar.classList.toggle('open');
-        menuToggle.setAttribute('aria-expanded', String(isOpen));
-      });
-
-      // Validar expiración local periódicamente
-      window.setInterval(() => {
-        if (Number(session.expiresAt) <= Date.now()) {
-          localStorage.removeItem(SESSION_KEY);
-          window.location.replace('index.html');
-        }
-      }, 30000);
-
-      // Obtener estadísticas y actividad del backend
-      const activityList = document.querySelector('.activity-list');
-      const activityColors = ['teal', 'blue', 'amber', 'coral'];
-      const formatRelativeTime = (value) => {
-        const createdAt = new Date(value);
-        if (Number.isNaN(createdAt.getTime())) return '';
-        const minutes = Math.floor(Math.max(0, Date.now() - createdAt.getTime()) / 60000);
-        if (minutes < 1) return 'Ahora';
-        if (minutes < 60) return `Hace ${minutes} min`;
-        const hours = Math.floor(minutes / 60);
-        if (hours < 24) return `Hace ${hours} h`;
-        return `Hace ${Math.floor(hours / 24)} d`;
-      };
-      const renderRecentActivities = (activities) => {
-        activityList.replaceChildren();
-        if (!activities.length) {
-          const emptyMessage = document.createElement('p');
-          emptyMessage.className = 'activity-empty';
-          emptyMessage.textContent = 'Todavía no hay actividad registrada.';
-          activityList.append(emptyMessage);
-          return;
-        }
-
-        activities.forEach((activity, index) => {
-          const userName = activity.user?.name || 'Usuario no disponible';
-          const initials = userName.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
-          const item = document.createElement('div');
-          item.className = 'activity-item';
-          const avatar = document.createElement('span');
-          avatar.className = `activity-avatar ${activityColors[index % activityColors.length]}`;
-          avatar.textContent = initials || 'U';
-          const details = document.createElement('div');
-          const name = document.createElement('strong');
-          name.textContent = userName;
-          const description = document.createElement('p');
-          description.textContent = activity.description || 'Actividad registrada';
-          details.append(name, description);
-          item.append(avatar, details);
-
-          const timeLabel = formatRelativeTime(activity.createdAt);
-          if (timeLabel) {
-            const time = document.createElement('time');
-            time.dateTime = activity.createdAt;
-            time.textContent = timeLabel;
-            item.append(time);
-          }
-          activityList.append(item);
-        });
-      };
-
-      fetch('/api/dashboard/stats', {
-    headers: { 'Authorization': `Bearer ${session.token}` }
-})
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          const stats = data.data.stats;
-          renderRecentActivities(data.data.recentActivities || []);
-          // Actualizar UI de estadísticas usando querySelectors basados en el texto o estructura, o simplemente reemplazar el contenido
-          const statCards = document.querySelectorAll('.stat-card strong');
-          if (statCards.length >= 3) {
-             statCards[0].textContent = stats.activeReservations || 0; // Reservas activas
-             statCards[1].textContent = stats.totalServices || 0; // Servicios
-             statCards[2].textContent = stats.pendingReservations || 0; // Reservas pendientes
-          }
-          if (isAdmin && statCards.length >= 4) {
-             statCards[3].textContent = stats.totalUsers || 0; // Usuarios
-          }
-        } else {
-          // Token inválido o problema
-          if (data.message && data.message.toLowerCase().includes('no autorizado')) {
-            localStorage.removeItem(SESSION_KEY);
-            window.location.replace('index.html');
-          }
-        }
-      })
-      .catch(err => console.error('Error fetching dashboard stats:', err));
-
-      if (isAdmin) {
-      const userElements = {
-        body: document.getElementById('usersTableBody'), search: document.getElementById('userSearch'),
-        role: document.getElementById('roleFilter'), status: document.getElementById('statusFilter'),
-        feedback: document.getElementById('userFeedback'), empty: document.getElementById('emptyUsers'), modal: document.getElementById('userModal'),
-        form: document.getElementById('userForm'), formError: document.getElementById('userFormError'), id: document.getElementById('userId'),
-        name: document.getElementById('userNameInput'), email: document.getElementById('userEmailInput'), password: document.getElementById('userPasswordInput'),
-        userRole: document.getElementById('userRoleInput'), userStatus: document.getElementById('userStatusInput'), title: document.getElementById('userModalTitle')
-      };
-      
-      let users = [];
-      const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
-      const statusLabels = { active: 'Activo', inactive: 'Inactivo', pending: 'Pendiente' };
-      const roleLabels = { admin: 'Administrador', user: 'Usuario' };
-      const formatDate = (value) => new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value));
-      
-      const renderUsers = () => {
-        userElements.body.innerHTML = users.map((user) => `<tr><td><strong>${escapeHtml(user.name)}</strong></td><td>${escapeHtml(user.email)}</td><td>${roleLabels[user.role] || user.role}</td><td><span class="status-badge ${user.status}">${statusLabels[user.status] || user.status}</span></td><td>${formatDate(user.createdAt)}</td><td><div class="row-actions"><button class="row-action" data-edit="${user.id}" type="button" title="Editar usuario">Editar</button><button class="row-action danger" data-delete="${user.id}" type="button" title="Eliminar usuario">Eliminar</button></div></td></tr>`).join('');
-        userElements.empty.hidden = users.length > 0;
-      };
-
-      const loadUsers = async () => {
-        userElements.feedback.textContent = 'Cargando usuarios...';
-        try {
-          const queryParams = new URLSearchParams();
-          if (userElements.search.value) queryParams.append('q', userElements.search.value);
-          if (userElements.role.value) queryParams.append('role', userElements.role.value);
-          if (userElements.status.value) queryParams.append('status', userElements.status.value);
-          
-          const res = await fetch(`http://localhost:5000/api/users?${queryParams.toString()}`, {
-            headers: { 'Authorization': `Bearer ${session.token}` }
-          });
-          const data = await res.json();
-          if (data.success) {
-            users = data.data;
-            renderUsers();
-            userElements.feedback.textContent = `${data.pagination.total} usuario(s) encontrado(s)`;
-          } else {
-            userElements.feedback.textContent = data.message || 'Error cargando usuarios';
-          }
-        } catch (error) { userElements.feedback.textContent = 'Error de conexión'; }
-      };
-
-      const openUserModal = (user) => { userElements.form.reset(); userElements.formError.textContent = ''; userElements.id.value = user?.id || ''; userElements.title.textContent = user ? 'Editar usuario' : 'Nuevo usuario'; userElements.name.value = user?.name || ''; userElements.email.value = user?.email || ''; userElements.userRole.value = user?.role || 'user'; userElements.userStatus.value = user?.status || 'active'; userElements.password.required = !user; userElements.modal.hidden = false; userElements.name.focus(); };
-      const closeUserModal = () => { userElements.modal.hidden = true; };
-      document.getElementById('newUserButton').addEventListener('click', () => openUserModal());
-      document.getElementById('closeUserModal').addEventListener('click', closeUserModal);
-      document.getElementById('cancelUserButton').addEventListener('click', closeUserModal);
-      userElements.modal.addEventListener('click', (event) => { if (event.target === userElements.modal) closeUserModal(); });
-      [userElements.search, userElements.role, userElements.status].forEach((element) => element.addEventListener('input', () => { clearTimeout(element.timeoutId); element.timeoutId = setTimeout(loadUsers, 300); }));
-      
-      userElements.body.addEventListener('click', async (event) => {
-        const editId = event.target.dataset.edit; const deleteId = event.target.dataset.delete;
-        if (editId) openUserModal(users.find((user) => user.id === editId));
-        if (deleteId && window.confirm('¿Quieres eliminar este usuario? Esta acción no se puede deshacer.')) {
-          try {
-            const res = await fetch(`http://localhost:5000/api/users/${deleteId}`, {
-              method: 'DELETE',
-              headers: { 'Authorization': `Bearer ${session.token}` }
-            });
-            const data = await res.json();
-            if (data.success) {
-              await loadUsers();
-            } else {
-              alert(data.message || 'Error al eliminar usuario');
-            }
-          } catch (e) { alert('Error de red'); }
-        }
-      });
-      
-      userElements.form.addEventListener('submit', async (event) => {
-        event.preventDefault(); userElements.formError.textContent = 'Guardando...';
-        const payload = { name: userElements.name.value.trim(), email: userElements.email.value.trim(), role: userElements.userRole.value, status: userElements.userStatus.value };
-        if (userElements.password.value) payload.password = userElements.password.value;
-        const userId = userElements.id.value;
-        
-        try {
-          const res = await fetch(`http://localhost:5000/api/users${userId ? `/${userId}` : ''}`, {
-            method: userId ? 'PUT' : 'POST',
-            headers: { 'Authorization': `Bearer ${session.token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-          const data = await res.json();
-          if (data.success) {
-            closeUserModal();
-            await loadUsers();
-          } else {
-            userElements.formError.textContent = data.message || 'Error al guardar usuario';
-          }
-        } catch (e) { userElements.formError.textContent = 'Error de red'; }
-      });
-      if (isAdmin) loadUsers();
-
-      const serviceElements = { grid: document.getElementById('serviceGrid'), search: document.getElementById('serviceSearch'), status: document.getElementById('serviceStatusFilter'), feedback: document.getElementById('serviceFeedback'), empty: document.getElementById('emptyServices'), modal: document.getElementById('serviceModal'), form: document.getElementById('serviceForm'), error: document.getElementById('serviceFormError'), id: document.getElementById('serviceId'), name: document.getElementById('serviceNameInput'), description: document.getElementById('serviceDescriptionInput'), price: document.getElementById('servicePriceInput'), duration: document.getElementById('serviceDurationInput'), category: document.getElementById('serviceCategoryInput'), serviceStatus: document.getElementById('serviceStatusInput'), image: document.getElementById('serviceImageInput'), title: document.getElementById('serviceModalTitle') };
-      let services = [];
-      const serviceStatusLabels = { available: 'Disponible', inactive: 'Inactivo' };
-      const formatPrice = (value) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value);
-      
-      const renderServices = () => { 
-        serviceElements.grid.innerHTML = services.map((service) => {
-          const status = service.isActive ? 'available' : 'inactive';
-          return `<article class="service-card"><div class="service-image">${service.image ? `<img src="${escapeHtml(service.image)}" alt="${escapeHtml(service.name)}">` : '<span aria-hidden="true">◇</span>'}</div><div class="service-card-content"><span class="service-category">${escapeHtml(service.category)}</span><h3>${escapeHtml(service.name)}</h3><p>${escapeHtml(service.description)}</p><div class="service-details"><span>Duración: <strong>${service.duration} min</strong></span><span>Precio: <strong>${formatPrice(service.price)}</strong></span></div><div class="service-card-footer"><span class="status-badge ${status}">${serviceStatusLabels[status]}</span><div class="row-actions"><button class="row-action" data-edit-service="${service.id}" type="button">Editar</button><button class="row-action danger" data-delete-service="${service.id}" type="button">Eliminar</button></div></div></div></article>`;
-        }).join(''); 
-        serviceElements.empty.hidden = services.length > 0; 
-      };
-
-      const loadServices = async () => { 
-        serviceElements.feedback.textContent = 'Cargando servicios...';
-        try {
-          const queryParams = new URLSearchParams();
-          if (serviceElements.search.value) queryParams.append('q', serviceElements.search.value);
-          if (serviceElements.status.value === 'available') queryParams.append('isActive', 'true');
-          if (serviceElements.status.value === 'inactive') queryParams.append('isActive', 'false');
-          
-          const res = await fetch(`http://localhost:5000/api/services?${queryParams.toString()}`, {
-            headers: { 'Authorization': `Bearer ${session.token}` }
-          });
-          const data = await res.json();
-          if (data.success) {
-            services = data.data;
-            renderServices();
-            serviceElements.feedback.textContent = `${data.pagination.total} servicio(s) encontrado(s)`;
-          } else {
-            serviceElements.feedback.textContent = data.message || 'Error cargando servicios';
-          }
-        } catch (error) { serviceElements.feedback.textContent = 'Error de red'; }
-      };
-
-      const openServiceModal = (service) => { 
-        serviceElements.form.reset(); serviceElements.error.textContent = ''; 
-        serviceElements.id.value = service?.id || ''; 
-        serviceElements.title.textContent = service ? 'Editar servicio' : 'Nuevo servicio'; 
-        serviceElements.name.value = service?.name || ''; 
-        serviceElements.description.value = service?.description || ''; 
-        serviceElements.price.value = service?.price || ''; 
-        serviceElements.duration.value = service?.duration || ''; 
-        serviceElements.category.value = service?.category || ''; 
-        serviceElements.serviceStatus.value = service ? (service.isActive ? 'available' : 'inactive') : 'available'; 
-        serviceElements.image.value = service?.image || ''; 
-        serviceElements.modal.hidden = false; serviceElements.name.focus(); 
-      };
-      
-      const closeServiceModal = () => { serviceElements.modal.hidden = true; };
-      document.getElementById('newServiceButton').addEventListener('click', () => openServiceModal());
-      document.getElementById('closeServiceModal').addEventListener('click', closeServiceModal);
-      document.getElementById('cancelServiceButton').addEventListener('click', closeServiceModal);
-      serviceElements.modal.addEventListener('click', (event) => { if (event.target === serviceElements.modal) closeServiceModal(); });
-      [serviceElements.search, serviceElements.status].forEach((element) => element.addEventListener('input', () => { clearTimeout(element.timeoutId); element.timeoutId = setTimeout(loadServices, 300); }));
-      
-      serviceElements.grid.addEventListener('click', async (event) => { 
-        const editId = event.target.dataset.editService; 
-        const deleteId = event.target.dataset.deleteService; 
-        if (editId) openServiceModal(services.find((service) => service.id === editId)); 
-        if (deleteId && window.confirm('¿Quieres eliminar este servicio? Esta acción no se puede deshacer.')) { 
-          try {
-            const res = await fetch(`http://localhost:5000/api/services/${deleteId}`, {
-              method: 'DELETE',
-              headers: { 'Authorization': `Bearer ${session.token}` }
-            });
-            const data = await res.json();
-            if (data.success) {
-              await loadServices();
-            } else {
-              alert(data.message || 'Error al eliminar servicio');
-            }
-          } catch (e) { alert('Error de red'); }
-        } 
-      });
-      
-      serviceElements.form.addEventListener('submit', async (event) => { 
-        event.preventDefault(); serviceElements.error.textContent = 'Guardando...'; 
-        const payload = { 
-          name: serviceElements.name.value.trim(), 
-          description: serviceElements.description.value.trim(), 
-          price: Number(serviceElements.price.value), 
-          duration: Number(serviceElements.duration.value), 
-          category: serviceElements.category.value.trim(), 
-          isActive: serviceElements.serviceStatus.value === 'available', 
-          image: serviceElements.image.value.trim() 
-        }; 
-        const serviceId = serviceElements.id.value; 
-        
-        try {
-          const res = await fetch(`http://localhost:5000/api/services${serviceId ? `/${serviceId}` : ''}`, {
-            method: serviceId ? 'PUT' : 'POST',
-            headers: { 'Authorization': `Bearer ${session.token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-          const data = await res.json();
-          if (data.success) {
-            closeServiceModal();
-            await loadServices();
-          } else {
-            serviceElements.error.textContent = data.message || 'Error al guardar servicio';
-          }
-        } catch (e) { serviceElements.error.textContent = 'Error de red'; }
-      });
-      loadServices();
-      }
-    }
-  </script>
+  <!-- SCRIPTS -->
+  <script src="shared.js"></script>
+  <script src="dashboard.js"></script>
 </body>
 </html>

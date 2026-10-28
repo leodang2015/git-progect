@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Servicios | BellaSalón Studio & Spa</title>
+  <!-- Iconos de FontAwesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    (function(){
+      try {
+        var s = JSON.parse(localStorage.getItem('reservas_session') || '{}');
+        if (s && s.user && ['admin', 'administrador'].includes(String(s.user.role || '').toLowerCase())) {
+          document.documentElement.classList.add('is-admin');
+        }
+      } catch(e) {}
+    })();
+  </script>
+</head>
+<body class="dashboard-page">
+  <div class="dashboard-shell">
+    <!-- MENÚ LATERAL IZQUIERDO -->
+    <aside class="dashboard-sidebar" id="dashboardSidebar" aria-label="Navegación principal">
+      <a class="dashboard-brand" href="dashboard.html" aria-label="Ir al inicio del dashboard">
+        <span class="brand-mark" aria-hidden="true"><i class="fa-solid fa-scissors"></i></span>
+        <span><strong>BellaSalón</strong><small>Studio & Spa</small></span>
+      </a>
+      <nav class="dashboard-nav">
+        <a class="dashboard-nav-link" id="navDashboard" href="dashboard.html">
+          <span aria-hidden="true"><i class="fa-solid fa-house-chimney-window"></i></span>Resumen
+        </a>
+        <a class="dashboard-nav-link" id="navReservas" href="reservas.html">
+          <span aria-hidden="true"><i class="fa-solid fa-calendar-check"></i></span>Mis Citas
+        </a>
+        <a class="dashboard-nav-link" id="navServicios" href="servicios.html">
+          <span aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></span>Carta Belleza
+        </a>
+        <a class="dashboard-nav-link admin-only active" id="navAdminServicios" href="admin-servicios.html">
+          <span aria-hidden="true"><i class="fa-solid fa-spa"></i></span>Servicios Admin
+        </a>
+        <a class="dashboard-nav-link admin-only" id="navAdminUsuarios" href="admin-usuarios.html">
+          <span aria-hidden="true"><i class="fa-solid fa-users"></i></span>Clientes
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <span class="status-dot"></span><span>Salón Abierto • Panel Admin</span>
+      </div>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL: GESTIÓN DE SERVICIOS -->
+    <main class="dashboard-main">
+      <header class="dashboard-header">
+        <button class="menu-toggle" id="menuToggle" type="button" aria-label="Abrir menú" aria-expanded="false">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div>
+          <p class="eyebrow"><i class="fa-solid fa-shield-halved"></i> Control Administrativo</p>
+          <h1>Gestión de Servicios y Precios</h1>
+        </div>
+        <div class="header-actions">
+          <a href="https://wa.me/573001234567" target="_blank" rel="noopener noreferrer" class="salon-help-chip" title="Atención directa por WhatsApp">
+            <i class="fa-brands fa-whatsapp"></i> <span>Recepción Spa</span>
+          </a>
+          <div class="user-chip">
+            <span class="avatar" id="userInitials">A</span>
+            <span><strong id="userName">Administrador</strong><small id="userRole">Administrador</small></span>
+          </div>
+          <button class="logout-button" id="logoutButton" type="button" title="Cerrar sesión">
+            <span aria-hidden="true"><i class="fa-solid fa-arrow-right-from-bracket"></i></span>
+            <span class="logout-label">Salir</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- GESTIÓN DE SERVICIOS -->
+      <section class="service-management" id="gestion-servicios" aria-labelledby="servicesTitle" style="margin-top: 15px;">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow"><i class="fa-solid fa-spa"></i> Menú del Salón</p>
+            <h2 id="servicesTitle">Catálogo de Tratamientos y Tarifas</h2>
+            <p>Agrega, edita precios, tiempos estimados o activa/inactiva servicios para que los clientes agenden en línea.</p>
+          </div>
+          <button class="primary-action" id="newServiceButton" type="button">
+            <i class="fa-solid fa-plus"></i> Nuevo tratamiento
+          </button>
+        </div>
+
+        <div class="service-toolbar">
+          <label class="search-field" for="serviceSearch">
+            <span aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>
+            <input id="serviceSearch" type="search" placeholder="Buscar servicio o categoría..." autocomplete="off">
+          </label>
+          <select id="serviceStatusFilter" aria-label="Filtrar servicios por estado">
+            <option value="">Todos los estados</option>
+            <option value="available">Disponible</option>
+            <option value="inactive">Inactivo</option>
+          </select>
+        </div>
+
+        <p class="user-feedback" id="serviceFeedback" role="status"></p>
+
+        <div class="service-grid" id="serviceGrid">
+          <!-- Renderizado dinámico desde admin-servicios.js -->
+        </div>
+
+        <div class="empty-users" id="emptyServices" hidden>
+          No se encontraron servicios con los filtros especificados.
+        </div>
+      </section>
+
+      <p class="dashboard-note">BellaSalón Studio & Spa • Cuidado capilar, estilismo y bienestar profesional.</p>
+    </main>
+  </div>
+
+  <!-- MODAL SERVICIO (ADMIN) -->
+  <div class="modal-backdrop" id="serviceModal" hidden>
+    <form class="user-modal" id="serviceForm">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">Catálogo</p>
+          <h2 id="serviceModalTitle">Nuevo tratamiento</h2>
+        </div>
+        <button class="icon-button" id="closeServiceModal" type="button" aria-label="Cerrar modal">×</button>
+      </div>
+
+      <input id="serviceId" type="hidden">
+
+      <label>
+        Nombre del servicio
+        <input id="serviceNameInput" required placeholder="Ej: Tratamiento de Keratina Brasileña">
+      </label>
+
+      <label>
+        Descripción
+        <textarea id="serviceDescriptionInput" rows="3" required placeholder="Detalla los beneficios y pasos del tratamiento..."></textarea>
+      </label>
+
+      <div class="form-row">
+        <label>
+          Precio ($ COP)
+          <input id="servicePriceInput" type="number" min="0" step="500" required placeholder="50000">
+        </label>
+        <label>
+          Duración (minutos)
+          <input id="serviceDurationInput" type="number" min="1" required placeholder="60">
+        </label>
+      </div>
+
+      <div class="form-row">
+        <label>
+          Categoría
+          <input id="serviceCategoryInput" required placeholder="Ej: Cabello & Peinado, Uñas, etc.">
+        </label>
+        <label>
+          Estado
+          <select id="serviceStatusInput">
+            <option value="available">Disponible</option>
+            <option value="inactive">Inactivo</option>
+          </select>
+        </label>
+      </div>
+
+      <label>
+        Imagen del tratamiento (URL)
+        <input id="serviceImageInput" type="url" placeholder="https://images.unsplash.com/...">
+      </label>
+
+      <p class="modal-error" id="serviceFormError" role="alert"></p>
+
+      <div class="modal-actions">
+        <button class="secondary-action" id="cancelServiceButton" type="button">Cancelar</button>
+        <button class="primary-action" type="submit">Guardar tratamiento</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="shared.js"></script>
+  <script src="admin-servicios.js"></script>
+</body>
+</html>
