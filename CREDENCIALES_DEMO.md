@@ -1,6 +1,6 @@
 # Cuentas de demostración
 
-Las cuentas nuevas de demostración usan la contraseña `Demo123!`.
+Credenciales iniciales de las cuentas de prueba ya creadas en MongoDB. El panel ya no crea cuentas automáticamente. Si una contraseña fue cambiada, usa la contraseña actual de esa cuenta.
 
 | Usuario (correo) | Rol | Contraseña |
 |---|---|---|
@@ -15,4 +15,4 @@ Las cuentas nuevas de demostración usan la contraseña `Demo123!`.
 | camila.gomez@example.com | Peluquero — Tratamientos capilares y blower | Demo123! |
 | andres.pardo@example.com | Peluquero — Barbería y corte clásico | Demo123! |
 
-El panel administrativo crea las cuentas de demostración que falten en MongoDB la primera vez que se carga, y los cambios de usuarios se guardan directamente en la base de datos. No publiques estas credenciales en una aplicación de producción.
+Los cambios realizados desde el panel administrativo se guardan directamente en MongoDB. No publiques estas credenciales ni las uses en producción.

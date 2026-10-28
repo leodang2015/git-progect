@@ -13,4 +13,4 @@ Las respuestas de usuarios contienen `id`, `name`, `email`, `role`, `specialty`,
 
 Ejecuta `npm test` desde `backend/` para validar el esquema de usuario.
 
-El panel administrativo sincroniza con MongoDB los cambios de usuarios y crea los usuarios y servicios de demostración que falten al abrirse por primera vez. También puedes ejecutar `npm run seed` desde `backend/` para cargar los datos de demostración (incluye cinco clientes y cinco peluqueros); las cuentas nuevas usan `Demo123!`. Consulta [../CREDENCIALES_DEMO.md](../CREDENCIALES_DEMO.md) para los correos de prueba. No uses estas credenciales en producción.
+El panel administrativo lee y guarda los usuarios directamente en MongoDB; no crea cuentas de demostración automáticamente. Ejecuta `npm run seed` desde `backend/` para cargar los servicios de demostración. Las credenciales de las cuentas de prueba que ya se crearon están en [../CREDENCIALES_DEMO.md](../CREDENCIALES_DEMO.md); no las uses en producción.

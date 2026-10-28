@@ -16,7 +16,7 @@
   const {
     getStoredUsers,
     saveStoredUsers,
-    defaultServices,
+    getStoredServices,
     escapeHtml,
     formatDate
   } = window.BellaSalon;
@@ -48,59 +48,6 @@
     cancelBtn: document.getElementById('cancelUserButton')
   };
 
-  const demoUsers = [
-    { id: 'usr-demo', name: 'Camila Torres', email: 'usuario@ejemplo.com', role: 'user', status: 'active' },
-    { id: 'usr-demo-diego', name: 'Diego Ramírez', email: 'diego@example.com', role: 'user', status: 'active' },
-    { id: 'usr-demo-valentina', name: 'Valentina Cruz', email: 'valentina@example.com', role: 'user', status: 'active' },
-    { id: 'usr-demo-mateo', name: 'Mateo Herrera', email: 'mateo@example.com', role: 'user', status: 'active' },
-    { id: 'usr-demo-laura', name: 'Laura Martínez', email: 'laura@example.com', role: 'user', status: 'active' },
-    {
-      id: 'usr-stylist-sofia',
-      name: 'Sofía Mendoza',
-      email: 'sofia.mendoza@example.com',
-      role: 'stylist',
-      status: 'active',
-      specialty: 'Colorista y especialista en mechas',
-      serviceIds: ['service-3']
-    },
-    {
-      id: 'usr-stylist-mateo',
-      name: 'Mateo Silva',
-      email: 'mateo.silva@example.com',
-      role: 'stylist',
-      status: 'active',
-      specialty: 'Corte, visagismo y estilo',
-      serviceIds: ['service-1']
-    },
-    {
-      id: 'usr-stylist-valentina',
-      name: 'Valentina Ruiz',
-      email: 'valentina.ruiz@example.com',
-      role: 'stylist',
-      status: 'active',
-      specialty: 'Manicura y pedicura spa',
-      serviceIds: ['service-4']
-    },
-    {
-      id: 'usr-stylist-camila',
-      name: 'Camila Gómez',
-      email: 'camila.gomez@example.com',
-      role: 'stylist',
-      status: 'active',
-      specialty: 'Tratamientos capilares y blower',
-      serviceIds: ['service-2']
-    },
-    {
-      id: 'usr-stylist-andres',
-      name: 'Andrés Pardo',
-      email: 'andres.pardo@example.com',
-      role: 'stylist',
-      status: 'active',
-      specialty: 'Barbería y corte clásico',
-      serviceIds: ['service-1']
-    }
-  ];
-
   const apiHeaders = {
     Authorization: `Bearer ${auth.session.token}`,
     'Content-Type': 'application/json'
@@ -125,7 +72,7 @@
     const serviceNames = mongoServices
       .filter(service => mongoServiceIds.includes(String(service.id)))
       .map(service => service.name);
-    const localServiceIds = defaultServices
+    const localServiceIds = getStoredServices()
       .filter(service => serviceNames.includes(service.name))
       .map(service => service.id);
 
@@ -139,62 +86,6 @@
 
   const getMongoServiceIds = (localServiceIds) => {
     return localServiceIds.map(String);
-  };
-
-  const ensureDemoServices = async (services) => {
-    const knownNames = new Set(services.map(service => service.name));
-    for (const service of defaultServices) {
-      if (knownNames.has(service.name)) continue;
-      const response = await apiRequest('/api/services', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: service.name,
-          description: service.description,
-          price: service.price,
-          duration: service.duration,
-          image: service.image,
-          category: service.category,
-          isActive: true
-        })
-      });
-      services.push(response.data);
-      knownNames.add(service.name);
-    }
-    return services;
-  };
-
-  const syncDemoUsers = async (users) => {
-    const knownEmails = new Set(users.map(user => user.email.toLowerCase()));
-    for (const demoUser of demoUsers) {
-      if (knownEmails.has(demoUser.email.toLowerCase())) continue;
-
-      const payload = {
-        name: demoUser.name,
-        email: demoUser.email,
-        password: 'Demo123!',
-        role: demoUser.role,
-        status: demoUser.status
-      };
-      if (demoUser.role === 'stylist') {
-        payload.specialty = demoUser.specialty;
-        payload.serviceIds = mongoServices
-          .filter(service => demoUser.serviceIds.some(id =>
-            defaultServices.find(localService => localService.id === id)?.name === service.name
-          ))
-          .map(service => String(service.id));
-        if (!payload.serviceIds.length) {
-          throw new Error(`No se encontró en MongoDB el servicio asignado a ${demoUser.name}. Ejecuta npm run seed en backend.`);
-        }
-      }
-
-      const response = await apiRequest('/api/users', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-      users.push(toFrontendUser(response.data));
-      knownEmails.add(demoUser.email.toLowerCase());
-    }
-    return users;
   };
 
   // 4. RENDERIZAR TABLA DE USUARIOS
@@ -250,11 +141,12 @@
     if (elements.feedback) elements.feedback.textContent = 'Conectando con MongoDB...';
 
     try {
-      const serviceResponse = await apiRequest('/api/services?limit=100&isActive=true');
-      const services = await ensureDemoServices(serviceResponse.data);
-      mongoServices = services.map(service => ({ ...service, id: String(service.id || service._id) }));
-      const userResponse = await apiRequest('/api/users?limit=100');
-      const users = await syncDemoUsers(userResponse.data.map(toFrontendUser));
+      const [serviceResponse, userResponse] = await Promise.all([
+        apiRequest('/api/services?limit=100&isActive=true'),
+        apiRequest('/api/users?limit=100')
+      ]);
+      mongoServices = serviceResponse.data.map(service => ({ ...service, id: String(service.id || service._id) }));
+      const users = userResponse.data.map(toFrontendUser);
       saveStoredUsers(users);
       loadUsers();
     } catch (error) {
