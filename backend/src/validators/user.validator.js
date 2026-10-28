@@ -8,6 +8,18 @@ const listUsersValidator = [
   query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('El límite debe ser un entero entre 1 y 100')
 ];
 
+const stylistsByServiceValidator = [
+  query('serviceName').trim().notEmpty().withMessage('El servicio es obligatorio')
+    .isLength({ max: 100 }).withMessage('El servicio no puede superar 100 caracteres')
+];
+
+const updateWorkAreasValidator = [
+  body('workAreas').isArray({ max: 20 }).withMessage('Registra hasta 20 zonas de trabajo'),
+  body('workAreas.*').isString().trim().notEmpty()
+    .withMessage('Cada zona de trabajo debe tener un nombre')
+    .isLength({ max: 80 }).withMessage('Cada zona no puede superar 80 caracteres')
+];
+
 const createUserValidator = [
   body('name').trim().notEmpty().withMessage('El nombre es obligatorio')
     .isLength({ max: 100 }).withMessage('El nombre no puede superar 100 caracteres'),
@@ -47,6 +59,8 @@ const userIdValidator = [
 
 module.exports = {
   listUsersValidator,
+  stylistsByServiceValidator,
+  updateWorkAreasValidator,
   createUserValidator,
   updateUserValidator,
   userIdValidator

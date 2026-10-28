@@ -12,29 +12,18 @@
   const RESERVATIONS_KEY = 'reservas_list';
   const USERS_KEY = 'reservas_users';
 
-  // 2. PROFESIONALES Y ESTILISTAS DEL SALÓN (Vida Real)
-  const salonStylists = [
-    { id: 'sty-1', name: 'Sofía Mendoza', specialty: 'Master Colorimetría & Mechas', serviceIds: ['service-3'], avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80', badge: 'Colorista Top' },
-    { id: 'sty-2', name: 'Mateo Silva', specialty: 'Corte, Visagismo & Estilo', serviceIds: ['service-1'], avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80', badge: 'Estilista Senior' },
-    { id: 'sty-3', name: 'Valentina Ruiz', specialty: 'Manicura Rusa & Pedicura Spa', serviceIds: ['service-4'], avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=150&q=80', badge: 'Nail Artist' },
-    { id: 'sty-4', name: 'Camila Gómez', specialty: 'Tratamientos Capilares & Brillo', serviceIds: ['service-2'], avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80', badge: 'Terapeuta Capilar' }
-  ];
-
   const getAvailableStylists = (serviceId) => {
     if (!serviceId) return [];
-    const storedStylists = getStoredUsers()
+    return getStoredUsers()
       .filter(user => user.role === 'stylist' && user.status === 'active' && Array.isArray(user.serviceIds) && user.serviceIds.includes(serviceId))
       .map(user => ({
         id: user.id,
         name: user.name,
         specialty: user.specialty || 'Peluquero',
+        workAreas: Array.isArray(user.workAreas) ? user.workAreas : [],
         avatar: '',
         badge: 'Peluquero'
       }));
-
-    return [...salonStylists, ...storedStylists].filter(stylist => stylist.serviceIds
-      ? stylist.serviceIds.includes(serviceId)
-      : true);
   };
 
   // 3. CATÁLOGO BASE DE SERVICIOS
@@ -176,14 +165,6 @@
       const data = JSON.parse(localStorage.getItem(RESERVATIONS_KEY) || 'null');
       if (Array.isArray(data) && data.length > 0) {
         data.forEach(r => {
-          if (!r.stylistName) {
-            const availableStylists = getAvailableStylists(r.serviceId);
-            const randomSty = availableStylists[Math.floor(Math.random() * availableStylists.length)];
-            if (randomSty) {
-              r.stylistId = randomSty.id;
-              r.stylistName = randomSty.name;
-            }
-          }
           if (!r.hairLength) r.hairLength = 'Medio';
         });
         return data;
@@ -359,6 +340,18 @@
         : auth.currentUser.role === 'stylist' ? 'Peluquero' : 'Cliente';
     }
 
+    if (auth.currentUser.role === 'stylist') {
+      const nav = document.querySelector('.dashboard-nav');
+      if (nav && !document.getElementById('navStylistProfile')) {
+        const link = document.createElement('a');
+        link.className = 'dashboard-nav-link';
+        link.id = 'navStylistProfile';
+        link.href = 'peluquero.html';
+        link.innerHTML = '<span aria-hidden="true"><i class="fa-solid fa-scissors"></i></span>Mi perfil profesional';
+        nav.appendChild(link);
+      }
+    }
+
     const userInitialsEl = document.getElementById('userInitials');
     if (userInitialsEl) userInitialsEl.textContent = auth.initials;
 
@@ -480,22 +473,63 @@
         services.map(s => `<option value="${escapeHtml(s.id)}" data-price="${s.price || 0}" data-duration="${s.duration || 45}">${escapeHtml(s.name)} — ${formatPrice(s.price)} (${s.duration || 45} min)</option>`).join('');
     }
 
+    let availableStylists = [];
+    let professionalsRequestId = 0;
+
     const populateStylists = (selectedId = 'sty-any') => {
       if (!stylistSelect) return;
-      const availableStylists = getAvailableStylists(serviceSelect?.value);
-      if (!availableStylists.length) {
+      const selectedArea = hairLengthSelect?.value || '';
+      const areaStylists = availableStylists.filter(stylist => stylist.workAreas.includes(selectedArea));
+      if (!areaStylists.length) {
         stylistSelect.innerHTML = '<option value="" selected disabled>No hay profesionales para este servicio</option>';
         return;
       }
 
       stylistSelect.innerHTML = '<option value="sty-any">Primer profesional disponible</option>' +
-        availableStylists.map(sty =>
+        areaStylists.map(sty =>
           `<option value="${escapeHtml(sty.id)}">${escapeHtml(sty.name)} — ${escapeHtml(sty.specialty)}</option>`
         ).join('');
-      stylistSelect.value = availableStylists.some(sty => sty.id === selectedId) ? selectedId : 'sty-any';
+      stylistSelect.value = areaStylists.some(sty => sty.id === selectedId) ? selectedId : 'sty-any';
     };
 
-    populateStylists();
+    const populateWorkAreas = (selectedArea = '') => {
+      if (!hairLengthSelect) return;
+      const workAreas = [...new Set(availableStylists.flatMap(stylist => stylist.workAreas))].sort((a, b) => a.localeCompare(b, 'es'));
+      hairLengthSelect.innerHTML = workAreas.length
+        ? '<option value="" disabled selected>Seleccione una zona de trabajo ▼</option>' +
+          workAreas.map(area => `<option value="${escapeHtml(area)}">${escapeHtml(area)}</option>`).join('')
+        : '<option value="" disabled selected>No hay zonas registradas para este servicio</option>';
+      if (workAreas.includes(selectedArea)) hairLengthSelect.value = selectedArea;
+      populateStylists();
+    };
+
+    const loadStylistsForService = async (serviceName, selectedArea = '') => {
+      const requestId = ++professionalsRequestId;
+      if (formError) formError.textContent = '';
+      availableStylists = [];
+      populateWorkAreas();
+      if (!serviceName) return;
+
+      try {
+        const url = `/api/users/stylists?${new URLSearchParams({ serviceName })}`;
+        const response = await fetch(url, {
+          headers: { Authorization: `Bearer ${auth.session.token}` }
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'No se pudieron cargar las zonas de trabajo.');
+        if (requestId !== professionalsRequestId) return;
+
+        availableStylists = (result.data || []).map(stylist => ({
+          ...stylist,
+          id: String(stylist.id),
+          workAreas: Array.isArray(stylist.workAreas) ? stylist.workAreas : []
+        }));
+        populateWorkAreas(selectedArea);
+      } catch (error) {
+        if (requestId !== professionalsRequestId) return;
+        if (formError) formError.textContent = error.message;
+      }
+    };
 
     // Fecha mínima = hoy
     if (dateInput) {
@@ -532,7 +566,12 @@
       updateFlowSteps();
     };
 
-    serviceSelect?.addEventListener('change', () => {
+    serviceSelect?.addEventListener('change', async () => {
+      const selectedService = services.find(service => service.id === serviceSelect.value);
+      await loadStylistsForService(selectedService?.name || '');
+      updateSummary();
+    });
+    hairLengthSelect?.addEventListener('change', () => {
       populateStylists();
       updateSummary();
     });
@@ -547,7 +586,8 @@
       if (preselectedServiceId && serviceSelect) {
         serviceSelect.value = preselectedServiceId;
       }
-      populateStylists();
+      const selectedService = services.find(service => service.id === serviceSelect?.value);
+      loadStylistsForService(selectedService?.name || '');
 
       // No pre-seleccionar fecha automáticamente para respetar el orden de selección
       if (dateInput) {
@@ -587,7 +627,7 @@
 
       const serviceId = serviceSelect?.value;
       const stylistId = stylistSelect?.value || 'sty-any';
-      const hairLength = hairLengthSelect?.value || 'Medio';
+      const workArea = hairLengthSelect?.value || '';
       const dateVal = dateInput?.value;
       const timeVal = timeSelect?.value;
       const notesVal = (notesInput?.value || '').trim();
@@ -610,6 +650,12 @@
         return;
       }
 
+      if (!workArea) {
+        if (formError) formError.textContent = 'Selecciona una zona de trabajo disponible para este servicio.';
+        hairLengthSelect?.focus();
+        return;
+      }
+
       const todayStr = new Date().toISOString().split('T')[0];
       if (dateVal < todayStr) {
         if (formError) formError.textContent = 'La fecha de atención no puede ser en el pasado.';
@@ -617,20 +663,20 @@
       }
 
       const allReservations = getStoredReservations();
-      const availableStylists = getAvailableStylists(serviceId);
-      if (!availableStylists.length) {
-        if (formError) formError.textContent = 'No hay profesionales asignados a este servicio. Contacta al salón para agendar.';
+      const matchingStylists = availableStylists.filter(stylist => stylist.workAreas.includes(workArea));
+      if (!matchingStylists.length) {
+        if (formError) formError.textContent = 'No hay peluqueros que hayan registrado esa zona para el servicio seleccionado.';
         return;
       }
 
       const stylistObj = stylistId === 'sty-any'
-        ? availableStylists.find(stylist => !allReservations.some(reservation =>
+        ? matchingStylists.find(stylist => !allReservations.some(reservation =>
           reservation.stylistId === stylist.id &&
           reservation.date === dateVal &&
           reservation.time === timeVal &&
           ['confirmed', 'pending'].includes(normalizeStatus(reservation.status))
         ))
-        : availableStylists.find(stylist => stylist.id === stylistId);
+        : matchingStylists.find(stylist => stylist.id === stylistId);
       if (!stylistObj) {
         if (formError) formError.textContent = 'No hay profesionales disponibles para ese horario. Elige otra hora.';
         return;
@@ -639,7 +685,7 @@
       // Validación de conflictos de agenda para el profesional
       if (stylistId !== 'sty-any') {
         const conflict = allReservations.find(r =>
-          r.stylistId === stylistId &&
+          r.stylistId === stylistObj.id &&
           r.date === dateVal &&
           r.time === timeVal &&
           ['confirmed', 'pending'].includes(normalizeStatus(r.status))
@@ -660,7 +706,7 @@
         serviceName: selectedService.name,
         stylistId: stylistObj.id,
         stylistName: stylistObj.name,
-        hairLength,
+        hairLength: workArea,
         userName: auth.userName,
         userEmail: auth.currentUser.email || '',
         userId: auth.currentUser.id || 'usr-client',
@@ -727,7 +773,6 @@
     SERVICES_KEY,
     RESERVATIONS_KEY,
     USERS_KEY,
-    salonStylists,
     getAvailableStylists,
     defaultServices,
     defaultReservations,

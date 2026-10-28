@@ -107,7 +107,7 @@
       const roleBadge = u.role === 'admin'
         ? '<span style="color:var(--salon-rose); font-weight:700;"><i class="fa-solid fa-crown"></i> Administrador</span>'
         : u.role === 'stylist'
-          ? `<span><i class="fa-solid fa-scissors"></i> Peluquero<small style="display:block; color:var(--text-muted);">${escapeHtml(u.specialty || 'Sin oficio indicado')}</small></span>`
+          ? `<span><i class="fa-solid fa-scissors"></i> Peluquero<small style="display:block; color:var(--text-muted);">${escapeHtml(u.specialty || 'Sin oficio indicado')}</small><small style="display:block; color:var(--text-muted);">Zonas: ${escapeHtml((u.workAreas || []).join(', ') || 'Sin registrar')}</small></span>`
           : '<span><i class="fa-solid fa-user"></i> Cliente</span>';
 
       return `

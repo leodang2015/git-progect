@@ -14,7 +14,6 @@
   window.BellaSalon.setupSharedLayout(auth, 'navReservas');
 
   const {
-    salonStylists,
     getAvailableStylists,
     getStoredServices,
     getStoredReservations,
@@ -133,6 +132,9 @@
   let currentEditingReservation = null;
   let currentCancellingReservation = null;
   let pendingUpdatePayload = null;
+  let editAvailableStylists = [];
+  let editStylistsRequestId = 0;
+  let editStylistsLoading = false;
 
   // 5. INICIALIZAR MODAL DE AGENDAR CITA CON SHARED HELPER
   const bookingHandler = window.BellaSalon.setupBookingModal(auth, () => {
@@ -179,7 +181,6 @@
       const norm = normalizeStatus(res.status);
       const label = statusLabels[norm] || res.status;
       const stylist = getAvailableStylists(res.serviceId).find(s => s.id === res.stylistId) ||
-        salonStylists.find(s => s.id === res.stylistId) ||
         { name: res.stylistName || 'Estilista', avatar: '', specialty: 'Estilista de Salón' };
       const avatarSrc = stylist.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80';
 
@@ -507,9 +508,11 @@
 
   setupEditFormOptions();
 
-  const populateEditStylists = (serviceId, selectedId = 'sty-any') => {
+  const populateEditStylists = (selectedId = 'sty-any') => {
     if (!elements.editStylist) return;
-    const availableStylists = getAvailableStylists(serviceId);
+    const selectedArea = elements.editHairLength?.value || '';
+    const availableStylists = editAvailableStylists
+      .filter(stylist => stylist.workAreas.includes(selectedArea));
     if (!availableStylists.length) {
       elements.editStylist.innerHTML = '<option value="" selected disabled>No hay profesionales para este servicio</option>';
       return;
@@ -520,6 +523,57 @@
         `<option value="${escapeHtml(stylist.id)}">${escapeHtml(stylist.name)} — ${escapeHtml(stylist.specialty)}</option>`
       ).join('');
     elements.editStylist.value = availableStylists.some(stylist => stylist.id === selectedId) ? selectedId : 'sty-any';
+  };
+
+  const populateEditWorkAreas = (selectedArea = '', selectedStylistId = 'sty-any') => {
+    if (!elements.editHairLength) return;
+    const workAreas = [...new Set(editAvailableStylists.flatMap(stylist => stylist.workAreas))]
+      .sort((a, b) => a.localeCompare(b, 'es'));
+    elements.editHairLength.innerHTML = workAreas.length
+      ? '<option value="" disabled selected>Seleccione una zona de trabajo</option>' +
+        workAreas.map(area => `<option value="${escapeHtml(area)}">${escapeHtml(area)}</option>`).join('')
+      : '<option value="" disabled selected>No hay zonas registradas</option>';
+    if (workAreas.includes(selectedArea)) elements.editHairLength.value = selectedArea;
+    populateEditStylists(selectedStylistId);
+  };
+
+  const loadEditStylists = async (serviceId, selectedArea = '', selectedStylistId = 'sty-any') => {
+    const requestId = ++editStylistsRequestId;
+    editStylistsLoading = true;
+    editAvailableStylists = [];
+    elements.editHairLength.innerHTML = '<option value="" disabled selected>Cargando zonas...</option>';
+    elements.editStylist.innerHTML = '<option value="" disabled selected>Cargando peluqueros...</option>';
+
+    const service = getStoredServices().find(item => item.id === serviceId);
+    if (!service) {
+      editStylistsLoading = false;
+      elements.editFormError.textContent = 'No se encontró el servicio seleccionado.';
+      return;
+    }
+
+    try {
+      const url = `/api/users/stylists?${new URLSearchParams({ serviceName: service.name })}`;
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${auth.session.token}` }
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || 'No se pudieron cargar los peluqueros.');
+      if (requestId !== editStylistsRequestId) return;
+
+      editAvailableStylists = (result.data || []).map(stylist => ({
+        ...stylist,
+        id: String(stylist.id),
+        workAreas: Array.isArray(stylist.workAreas) ? stylist.workAreas : []
+      }));
+      populateEditWorkAreas(selectedArea, selectedStylistId);
+      editStylistsLoading = false;
+    } catch (error) {
+      if (requestId !== editStylistsRequestId) return;
+      editStylistsLoading = false;
+      elements.editFormError.textContent = error.message;
+      elements.editHairLength.innerHTML = '<option value="" disabled selected>No se pudieron cargar zonas</option>';
+      elements.editStylist.innerHTML = '<option value="" disabled selected>No se pudieron cargar peluqueros</option>';
+    }
   };
 
   const updateEditSummary = () => {
@@ -533,8 +587,12 @@
   };
 
   elements.editService?.addEventListener('change', () => {
-    populateEditStylists(elements.editService.value);
+    elements.editFormError.textContent = '';
+    loadEditStylists(elements.editService.value);
     updateEditSummary();
+  });
+  elements.editHairLength?.addEventListener('change', () => {
+    populateEditStylists();
   });
   elements.editStylist?.addEventListener('change', updateEditSummary);
   elements.editDate?.addEventListener('change', updateEditSummary);
@@ -548,8 +606,7 @@
     elements.editCodeBadge.textContent = `#${res.id}`;
 
     if (elements.editService) elements.editService.value = res.serviceId;
-    populateEditStylists(res.serviceId, res.stylistId || 'sty-any');
-    if (elements.editHairLength) elements.editHairLength.value = res.hairLength || 'Medio';
+    loadEditStylists(res.serviceId, res.hairLength || '', res.stylistId || 'sty-any');
     if (elements.editDate) elements.editDate.value = res.date;
     if (elements.editTime) elements.editTime.value = res.time;
     if (elements.editNotes) elements.editNotes.value = res.notes || '';
@@ -588,8 +645,12 @@
     const notesVal = elements.editNotes.value.trim();
     const statusVal = auth.isAdmin && elements.editStatus?.value ? elements.editStatus.value : currentEditingReservation.status;
 
-    if (!serviceId || !dateVal || !timeVal) {
-      elements.editFormError.textContent = 'Por favor completa todos los campos requeridos (servicio, fecha y hora).';
+    if (!serviceId || !hairLengthVal || !dateVal || !timeVal) {
+      elements.editFormError.textContent = 'Por favor selecciona servicio, zona de trabajo, fecha y hora.';
+      return;
+    }
+    if (editStylistsLoading) {
+      elements.editFormError.textContent = 'Espera a que se carguen los peluqueros disponibles.';
       return;
     }
 
@@ -600,9 +661,10 @@
     }
 
     const allReservations = getStoredReservations();
-    const availableStylists = getAvailableStylists(serviceId);
+    const availableStylists = editAvailableStylists
+      .filter(stylist => stylist.workAreas.includes(hairLengthVal));
     if (!availableStylists.length) {
-      elements.editFormError.textContent = 'No hay profesionales asignados a este servicio.';
+      elements.editFormError.textContent = 'No hay profesionales disponibles para la zona seleccionada.';
       return;
     }
 

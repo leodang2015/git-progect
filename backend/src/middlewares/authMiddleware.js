@@ -40,4 +40,12 @@ const admin = (req, res, next) => {
   }
 };
 
-module.exports = { protect, admin };
+const stylist = (req, res, next) => {
+  if (req.user && req.user.role === 'stylist') {
+    next();
+  } else {
+    return res.status(403).json({ success: false, message: 'Esta opción es exclusiva para peluqueros' });
+  }
+};
+
+module.exports = { protect, admin, stylist };

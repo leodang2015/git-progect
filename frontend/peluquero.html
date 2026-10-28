@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi perfil profesional | BellaSalón Studio & Spa</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    (function () {
+      try {
+        var session = JSON.parse(localStorage.getItem('reservas_session') || '{}');
+        if (session && session.user && ['admin', 'administrador'].includes(String(session.user.role || '').toLowerCase())) {
+          document.documentElement.classList.add('is-admin');
+        }
+      } catch (error) {}
+    })();
+  </script>
+</head>
+<body class="dashboard-page">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" id="dashboardSidebar" aria-label="Navegación principal">
+      <a class="dashboard-brand" href="dashboard.html" aria-label="Ir al inicio del panel">
+        <span class="brand-mark" aria-hidden="true"><i class="fa-solid fa-scissors"></i></span>
+        <span><strong>BellaSalón</strong><small>Studio & Spa</small></span>
+      </a>
+      <nav class="dashboard-nav">
+        <a class="dashboard-nav-link" id="navDashboard" href="dashboard.html">
+          <span aria-hidden="true"><i class="fa-solid fa-house-chimney-window"></i></span>Resumen
+        </a>
+        <a class="dashboard-nav-link" id="navReservas" href="reservas.html">
+          <span aria-hidden="true"><i class="fa-solid fa-calendar-check"></i></span>Mis Citas
+        </a>
+        <a class="dashboard-nav-link" id="navServicios" href="servicios.html">
+          <span aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></span>Carta Belleza
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <span class="status-dot"></span><span>Salón Abierto • Atención Activa</span>
+      </div>
+    </aside>
+
+    <main class="dashboard-main">
+      <header class="dashboard-header">
+        <button class="menu-toggle" id="menuToggle" type="button" aria-label="Abrir menú" aria-expanded="false">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div>
+          <p class="eyebrow"><i class="fa-solid fa-scissors"></i> Perfil profesional</p>
+          <h1>Mis zonas de trabajo</h1>
+        </div>
+        <div class="header-actions">
+          <div class="user-chip">
+            <span class="avatar" id="userInitials">P</span>
+            <span><strong id="userName">Peluquero</strong><small id="userRole">Peluquero</small></span>
+          </div>
+          <button class="logout-button" id="logoutButton" type="button" title="Cerrar sesión">
+            <span aria-hidden="true"><i class="fa-solid fa-arrow-right-from-bracket"></i></span>
+            <span class="logout-label">Salir</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="stylist-profile-panel panel" aria-labelledby="profileTitle">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Datos guardados en MongoDB</p>
+            <h2 id="profileTitle">Indica las zonas que atiendes</h2>
+          </div>
+        </div>
+        <p class="stylist-profile-intro">
+          Escribe una zona por línea, usando los nombres que tus clientes reconocerán. Al reservar,
+          solo aparecerás en los servicios que tienes asignados y en las zonas que registres aquí.
+        </p>
+        <div class="stylist-profile-summary">
+          <strong id="stylistName">Cargando perfil...</strong>
+          <span id="stylistSpecialty"></span>
+        </div>
+        <form id="workAreasForm" class="stylist-profile-form">
+          <label for="workAreasInput">Zonas de trabajo <small>(máximo 20, 80 caracteres cada una)</small></label>
+          <textarea id="workAreasInput" rows="8" maxlength="1700" placeholder="Ejemplo:&#10;Cabello largo&#10;Barba&#10;Coloración y mechas" required></textarea>
+          <p class="stylist-profile-count" id="workAreasCount">0 de 20 zonas</p>
+          <p class="stylist-profile-feedback" id="workAreasFeedback" role="status" aria-live="polite"></p>
+          <button type="submit" id="saveWorkAreasButton">
+            <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Guardar mis zonas
+          </button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <script src="shared.js"></script>
+  <script src="peluquero.js"></script>
+</body>
+</html>

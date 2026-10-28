@@ -978,6 +978,80 @@ button:disabled {
   padding: 26px;
 }
 
+.stylist-profile-panel {
+  max-width: 760px;
+  margin-top: 24px;
+}
+
+.stylist-profile-intro {
+  color: var(--text-muted);
+  line-height: 1.7;
+  margin: -4px 0 18px;
+}
+
+.stylist-profile-summary {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  background: var(--salon-rose-soft);
+  border: 1px solid var(--salon-rose-border);
+  border-radius: 12px;
+}
+
+.stylist-profile-summary span,
+.stylist-profile-form label small,
+.stylist-profile-count {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.stylist-profile-form {
+  display: grid;
+  gap: 10px;
+}
+
+.stylist-profile-form label {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.stylist-profile-form textarea {
+  width: 100%;
+  min-height: 170px;
+  resize: vertical;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-input);
+  color: var(--text-main);
+  font: inherit;
+}
+
+.stylist-profile-form textarea:focus {
+  outline: 2px solid var(--salon-rose);
+  outline-offset: 1px;
+}
+
+.stylist-profile-count {
+  margin: 0;
+  text-align: right;
+}
+
+.stylist-profile-feedback {
+  min-height: 20px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.stylist-profile-feedback.error {
+  color: var(--danger-color, #b42318);
+}
+
+.stylist-profile-feedback.success {
+  color: var(--success-color, #277958);
+}
+
 .panel-heading {
   display: flex;
   align-items: flex-start;

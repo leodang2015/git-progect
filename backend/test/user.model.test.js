@@ -22,10 +22,12 @@ test('User admite peluqueros con oficio y servicios asignados', async () => {
     password: 'StrongPass1!',
     role: 'stylist',
     specialty: 'Colorista',
-    serviceIds: [new mongoose.Types.ObjectId()]
+    serviceIds: [new mongoose.Types.ObjectId()],
+    workAreas: ['Cabello largo', 'Barba']
   });
 
   await user.validate();
+  assert.deepEqual(user.workAreas, ['Cabello largo', 'Barba']);
 });
 
 test('User exige oficio y al menos un servicio para el rol peluquero', async () => {
@@ -40,6 +42,27 @@ test('User exige oficio y al menos un servicio para el rol peluquero', async () 
   assert.ok(error);
   assert.ok(error.errors.specialty);
   assert.ok(error.errors.serviceIds);
+});
+
+test('User limita las zonas de trabajo a 20 y rechaza valores vacíos', async () => {
+  const user = new User({
+    name: 'Sofía Mendoza',
+    email: 'sofia@example.com',
+    password: 'StrongPass1!',
+    role: 'stylist',
+    specialty: 'Colorista',
+    serviceIds: [new mongoose.Types.ObjectId()],
+    workAreas: Array(21).fill('Cabello')
+  });
+  const error = await user.validate().then(() => null, (validationError) => validationError);
+
+  assert.ok(error);
+  assert.ok(error.errors.workAreas);
+
+  user.workAreas = [''];
+  const emptyAreaError = await user.validate().then(() => null, (validationError) => validationError);
+  assert.ok(emptyAreaError);
+  assert.ok(emptyAreaError.errors.workAreas);
 });
 
 test('User rechaza estados y roles fuera de las opciones permitidas', async () => {

@@ -36,6 +36,20 @@ const userSchema = new mongoose.Schema({
       message: 'Asigna al menos un servicio al peluquero'
     }
   },
+  workAreas: {
+    type: [{
+      type: String,
+      trim: true,
+      maxlength: [80, 'Cada zona de trabajo no puede superar 80 caracteres']
+    }],
+    default: [],
+    validate: {
+      validator: function (workAreas) {
+        return workAreas.length <= 20 && workAreas.every(area => area.length > 0);
+      },
+      message: 'Registra hasta 20 zonas de trabajo y evita valores vacíos'
+    }
+  },
   status: {
     type: String,
     enum: ['active', 'inactive'],

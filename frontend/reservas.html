@@ -237,19 +237,15 @@
         <label for="reservationStylist">
           <i class="fa-solid fa-user-tie"></i> Estilista / Profesional preferido
           <select id="reservationStylist" name="stylist">
-            <option value="sty-any">Primer profesional disponible</option>
+            <option value="" disabled selected>Primero seleccione servicio y zona</option>
           </select>
         </label>
 
         <div class="form-row">
           <label for="reservationHairLength">
-            <i class="fa-solid fa-wand-magic"></i> Largo de cabello / Tipo
-            <select id="reservationHairLength" name="hairLength">
-              <option value="Corto">Cabello corto / Barba</option>
-              <option value="Medio" selected>Cabello medio (hombros)</option>
-              <option value="Largo">Cabello largo</option>
-              <option value="Extra largo">Cabello extra largo</option>
-              <option value="Uñas / Spa">Uñas / Manos / Pies</option>
+            <i class="fa-solid fa-wand-magic"></i> Zona de trabajo
+            <select id="reservationHairLength" name="hairLength" required>
+              <option value="" disabled selected>Primero seleccione un servicio</option>
             </select>
           </label>
           <label for="reservationDate">
@@ -403,7 +399,7 @@
             <strong class="detail-field-val" id="detailTime">—</strong>
           </div>
           <div class="detail-field">
-            <span class="detail-field-label">Largo / Tipo</span>
+            <span class="detail-field-label">Zona de trabajo</span>
             <strong class="detail-field-val" id="detailHairLength">—</strong>
           </div>
           <div class="detail-field">
@@ -464,19 +460,15 @@
         <label for="editReservationStylist">
           Estilista / Profesional
           <select id="editReservationStylist" name="stylist">
-            <option value="sty-any">Primer profesional disponible</option>
+            <option value="" disabled selected>Seleccione zona de trabajo</option>
           </select>
         </label>
 
         <div class="form-row">
           <label for="editReservationHairLength">
-            Largo / Tipo
-            <select id="editReservationHairLength" name="hairLength">
-              <option value="Corto">Cabello corto / Barba</option>
-              <option value="Medio">Cabello medio (hombros)</option>
-              <option value="Largo">Cabello largo</option>
-              <option value="Extra largo">Cabello extra largo</option>
-              <option value="Uñas / Spa">Uñas / Manos / Pies</option>
+            Zona de trabajo
+            <select id="editReservationHairLength" name="hairLength" required>
+              <option value="" disabled selected>Seleccione servicio y peluquero</option>
             </select>
           </label>
           <label for="editReservationDate">

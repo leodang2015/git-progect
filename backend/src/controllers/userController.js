@@ -1,6 +1,7 @@
 const User = require('../models/User');
+const Service = require('../models/Service');
 
-const publicUserFields = 'name email role specialty serviceIds status createdAt updatedAt';
+const publicUserFields = 'name email role specialty serviceIds workAreas status createdAt updatedAt';
 const editableFields = ['name', 'email', 'password', 'role', 'specialty', 'serviceIds', 'status'];
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -12,6 +13,7 @@ const serializeUser = (user) => ({
   role: user.role,
   specialty: user.specialty,
   serviceIds: user.serviceIds,
+  workAreas: user.workAreas || [],
   status: user.status,
   createdAt: user.createdAt,
   updatedAt: user.updatedAt
@@ -28,6 +30,58 @@ const handleError = (res, error, operation) => {
 
   console.error(`Error in ${operation}:`, error);
   return res.status(500).json({ success: false, message: 'Error interno del servidor' });
+};
+
+const getStylistsByService = async (req, res) => {
+  try {
+    const service = await Service.findOne({ name: req.query.serviceName.trim() }).select('_id');
+    if (!service) {
+      return res.status(404).json({ success: false, message: 'El servicio no está registrado en MongoDB' });
+    }
+
+    const stylists = await User.find({
+      role: 'stylist',
+      status: 'active',
+      serviceIds: service._id,
+      workAreas: { $exists: true, $ne: [] }
+    }).select('name specialty workAreas').sort({ name: 1 }).lean();
+
+    return res.json({
+      success: true,
+      data: stylists.map(user => ({
+        id: user._id,
+        name: user.name,
+        specialty: user.specialty,
+        workAreas: user.workAreas || []
+      }))
+    });
+  } catch (error) {
+    return handleError(res, error, 'getStylistsByService');
+  }
+};
+
+const getMyStylistProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select(publicUserFields).lean();
+    if (!user) return res.status(404).json({ success: false, message: 'Peluquero no encontrado' });
+    return res.json({ success: true, data: serializeUser(user) });
+  } catch (error) {
+    return handleError(res, error, 'getMyStylistProfile');
+  }
+};
+
+const updateMyWorkAreas = async (req, res) => {
+  try {
+    const workAreas = [...new Set(req.body.workAreas.map(area => area.trim()))];
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ success: false, message: 'Peluquero no encontrado' });
+
+    user.workAreas = workAreas;
+    await user.save();
+    return res.json({ success: true, data: serializeUser(user) });
+  } catch (error) {
+    return handleError(res, error, 'updateMyWorkAreas');
+  }
 };
 
 const listUsers = async (req, res) => {
@@ -114,4 +168,12 @@ const deleteUser = async (req, res) => {
   }
 };
 
-module.exports = { listUsers, createUser, updateUser, deleteUser };
+module.exports = {
+  listUsers,
+  getStylistsByService,
+  getMyStylistProfile,
+  updateMyWorkAreas,
+  createUser,
+  updateUser,
+  deleteUser
+};
