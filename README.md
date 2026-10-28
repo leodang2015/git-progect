@@ -12,11 +12,11 @@ Aplicación web para que los clientes consulten servicios capilares, creen una c
 
 ## 3. Integrantes
 
-| Integrante | Responsabilidad principal en Sprint 3 |
-|---|---|
-| Omar Leonardo Dangond Rueda | Backend |
-| Javier Esneider Pinto Rodriguez | Desarrollo e integración |
-| Edward Blanco | Frontend |
+| Integrante                      | Responsabilidad principal en Sprint 3 |
+| ------------------------------- | ------------------------------------- |
+| Omar Leonardo Dangond Rueda     | Backend                               |
+| Javier Esneider Pinto Rodriguez | Desarrollo e integración             |
+| Edward Blanco                   | Frontend                              |
 
 ## 4. Tecnologías
 
@@ -86,11 +86,11 @@ npm test
 
 Configúralas en `backend/.env`. No publiques ese archivo ni incluyas secretos en commits.
 
-| Variable | Descripción |
-|---|---|
-| `PORT` | Puerto HTTP del backend; por defecto, `5000`. |
-| `NODE_ENV` | Entorno de ejecución, por ejemplo `development` o `production`. |
-| `MONGO_URI` | URI de conexión a MongoDB. |
+| Variable       | Descripción                                                                       |
+| -------------- | ---------------------------------------------------------------------------------- |
+| `PORT`       | Puerto HTTP del backend; por defecto, `5000`.                                    |
+| `NODE_ENV`   | Entorno de ejecución, por ejemplo `development` o `production`.               |
+| `MONGO_URI`  | URI de conexión a MongoDB.                                                        |
 | `JWT_SECRET` | Secreto privado usado para firmar los tokens JWT. Usa un valor aleatorio y seguro. |
 
 Ejemplo de archivo local (reemplaza los valores; no uses credenciales reales en documentación):
@@ -106,22 +106,22 @@ JWT_SECRET=reemplazar-por-un-secreto-aleatorio-largo
 
 Todas las rutas indicadas usan el prefijo `/api`. Las rutas protegidas requieren `Authorization: Bearer <token>`.
 
-| Método | Ruta | Acceso | Función |
-|---|---|---|---|
-| `POST` | `/api/auth/register` | Público | Registrar un cliente. |
-| `POST` | `/api/auth/login` | Público | Iniciar sesión y obtener JWT. |
-| `GET` | `/api/dashboard/stats` | Usuario autenticado | Consultar estadísticas del panel. |
-| `GET` | `/api/services` | Usuario autenticado | Listar y filtrar servicios activos. |
-| `POST` | `/api/services` | Administrador | Crear un servicio. |
-| `PUT` | `/api/services/:id` | Administrador | Actualizar un servicio. |
-| `DELETE` | `/api/services/:id` | Administrador | Eliminar un servicio si no tiene reservas asociadas. |
-| `GET` | `/api/users/stylists?serviceName=...` | Usuario autenticado | Listar peluqueros activos asignados al servicio y sus zonas registradas. |
-| `GET` | `/api/users/me` | Peluquero autenticado | Consultar el propio perfil. |
-| `PUT` | `/api/users/me/work-areas` | Peluquero autenticado | Guardar las zonas de trabajo propias. |
-| `GET` | `/api/users` | Administrador | Listar, buscar y filtrar usuarios. |
-| `POST` | `/api/users` | Administrador | Crear un usuario, cliente, administrador o peluquero. |
-| `PUT` | `/api/users/:id` | Administrador | Actualizar un usuario. |
-| `DELETE` | `/api/users/:id` | Administrador | Eliminar un usuario. |
+| Método    | Ruta                                    | Acceso                | Función                                                                 |
+| ---------- | --------------------------------------- | --------------------- | ------------------------------------------------------------------------ |
+| `POST`   | `/api/auth/register`                  | Público              | Registrar un cliente.                                                    |
+| `POST`   | `/api/auth/login`                     | Público              | Iniciar sesión y obtener JWT.                                           |
+| `GET`    | `/api/dashboard/stats`                | Usuario autenticado   | Consultar estadísticas del panel.                                       |
+| `GET`    | `/api/services`                       | Usuario autenticado   | Listar y filtrar servicios activos.                                      |
+| `POST`   | `/api/services`                       | Administrador         | Crear un servicio.                                                       |
+| `PUT`    | `/api/services/:id`                   | Administrador         | Actualizar un servicio.                                                  |
+| `DELETE` | `/api/services/:id`                   | Administrador         | Eliminar un servicio si no tiene reservas asociadas.                     |
+| `GET`    | `/api/users/stylists?serviceName=...` | Usuario autenticado   | Listar peluqueros activos asignados al servicio y sus zonas registradas. |
+| `GET`    | `/api/users/me`                       | Peluquero autenticado | Consultar el propio perfil.                                              |
+| `PUT`    | `/api/users/me/work-areas`            | Peluquero autenticado | Guardar las zonas de trabajo propias.                                    |
+| `GET`    | `/api/users`                          | Administrador         | Listar, buscar y filtrar usuarios.                                       |
+| `POST`   | `/api/users`                          | Administrador         | Crear un usuario, cliente, administrador o peluquero.                    |
+| `PUT`    | `/api/users/:id`                      | Administrador         | Actualizar un usuario.                                                   |
+| `DELETE` | `/api/users/:id`                      | Administrador         | Eliminar un usuario.                                                     |
 
 La respuesta, validaciones y permisos detallados están documentados en [`backend/README.md`](./backend/README.md).
 
@@ -139,7 +139,7 @@ Historias resumidas según las funcionalidades disponibles. Completa o reemplaza
 ## 10. GitHub Project
 
 - **Repositorio:** [leodang2015/git-progect](https://github.com/leodang2015/git-progect)
-- **GitHub Project:** <https://github.com/users/leodang2015/projects/1>
+- **GitHub Project:** [https://github.com/users/leodang2015/projects/1](https://github.com/users/leodang2015/projects/1)
 - **Organización del tablero:** documentar columnas, issues asignados y estado final del Sprint 3.
 
 ## 11. Sprint 3 y GitHub Actions
@@ -150,11 +150,11 @@ Finalizar funcionalidades, incorporar integración continua y consolidar una ver
 
 ### Distribución del equipo
 
-| Integrante | Área | Responsabilidades para documentar |
-|---|---|---|
-| Omar Leonardo Dangond Rueda | Backend | API, integración con MongoDB, autenticación/autorización y pruebas backend. |
+| Integrante                      | Área                     | Responsabilidades para documentar                                                                                                |
+| ------------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Omar Leonardo Dangond Rueda     | Backend                   | API, integración con MongoDB, autenticación/autorización y pruebas backend.                                                   |
 | Javier Esneider Pinto Rodriguez | Desarrollo e integración | Organización del trabajo, flujo de ramas, integración, Issues y Pull Requests. Ajustar según las tareas realmente realizadas. |
-| Edward Blanco | Frontend | Interfaz, formularios, consumo de API y validación visual. |
+| Edward Blanco                   | Frontend                  | Interfaz, formularios, consumo de API y validación visual.                                                                      |
 
 ### Flujo de trabajo solicitado
 
@@ -189,32 +189,10 @@ Esto describe un problema de historiales/repositorios no relacionados; no necesa
 - El equipo reportó Issues cerrados en el hito Sprint 3; adjuntar una captura o enlace al Project como evidencia de entrega.
 - El equipo reportó una incidencia de historiales no relacionados y la necesidad de crear otro clon; adjuntar evidencia y documentar el resultado final de la recuperación.
 
-## 12. Evidencias de entrega
-
-Añade capturas legibles o enlaces permanentes del repositorio. Evita mostrar tokens, contraseñas, URI privadas u otros secretos.
-
-| Evidencia solicitada | Archivo/enlace |
-|---|---|
-| Workflow CI (`.github/workflows/...`) | `PENDIENTE` |
-| Ejecución fallida controlada de Actions | `PENDIENTE` |
-| Issue del fallo | `PENDIENTE` |
-| Rama `fix/*` | `PENDIENTE` |
-| Prueba automatizada y resultado | `PENDIENTE` |
-| Ejecución exitosa de Actions tras el fix | Reportada exitosa por el equipo; las capturas adjuntas son de Vercel, falta enlace/captura de Actions |
-| Comprobaciones y deployments de Vercel | Capturas adjuntas: dos comprobaciones aprobadas y deployments `Ready` en `main`, commit `ff301d5` |
-| GitHub Project: Issues Sprint 3 | Capturas adjuntas: Issues cerrados del hito Sprint 3 (12 cerrados en una vista; 28 cerrados y 1 abierto en otra) |
-| PR hacia `develop` | `PENDIENTE` |
-| Code Review | `PENDIENTE` |
-| PR final de `develop` a `main` | `PENDIENTE` |
-| Incidencia de integración / historiales no relacionados | Capturas adjuntas del error y ramas; falta documentar el resultado final de la recuperación |
-| Historial de ramas y commits | `PENDIENTE` |
-| Versión estable en `main` (commit o tag) | `PENDIENTE` |
-| Capturas de la aplicación funcional | Captura de inicio de sesión adjunta; falta evidencia de un flujo funcional completo |
-
 ## Enlaces de despliegue
 
 Enlaces del proyecto compartidos por el equipo:
 
-- Repositorio GitHub: <https://github.com/leodang2015/git-progect>
-- Frontend desplegado en Vercel: <https://git-progect-frontend-dd92trfx5-muebles.vercel.app/>
-- Backend configurado: <https://git-progect.vercel.app>
+- Repositorio GitHub: [https://github.com/leodang2015/git-progect](https://github.com/leodang2015/git-progect)
+- Frontend desplegado en Vercel: [https://git-progect-frontend-dd92trfx5-muebles.vercel.app/](https://git-progect-frontend-dd92trfx5-muebles.vercel.app/)
+- Backend configurado: [https://git-progect.vercel.app](https://git-progect.vercel.app)
