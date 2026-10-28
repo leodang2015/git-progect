@@ -83,6 +83,8 @@ const login = async (req, res) => {
         name: resolvedName,
         email: user.email,
         role: user.role || 'user',
+        specialty: user.specialty || '',
+        serviceIds: user.serviceIds || [],
         status: user.status || 'active',
         phone: user.phone || ''
       }

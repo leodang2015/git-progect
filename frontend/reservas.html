@@ -113,6 +113,9 @@
           <button type="button" class="status-pill cancelled" data-pill-status="cancelled" id="pillCancelled">
             <i class="fa-solid fa-ban"></i> Canceladas <span class="pill-count" id="countCancelled">0</span>
           </button>
+          <button type="button" class="status-pill rejected" data-pill-status="rejected" id="pillRejected">
+            <i class="fa-solid fa-circle-xmark"></i> Rechazadas <span class="pill-count" id="countRejected">0</span>
+          </button>
         </div>
 
         <!-- Barra de herramientas: Buscador y filtros de fecha -->
@@ -140,6 +143,7 @@
             <option value="pending">Pendiente</option>
             <option value="completed">Finalizada</option>
             <option value="cancelled">Cancelada</option>
+            <option value="rejected">Rechazada</option>
           </select>
 
           <button id="resetReservationFilters" class="secondary-action reset-btn" type="button" title="Restablecer todos los filtros">
@@ -519,6 +523,7 @@
               <option value="confirmed">Confirmada</option>
               <option value="completed">Finalizada</option>
               <option value="cancelled">Cancelada</option>
+              <option value="rejected">Rechazada</option>
             </select>
           </label>
         </div>

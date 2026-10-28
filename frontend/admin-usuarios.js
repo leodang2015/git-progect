@@ -16,6 +16,7 @@
   const {
     getStoredUsers,
     saveStoredUsers,
+    getStoredServices,
     escapeHtml,
     formatDate
   } = window.BellaSalon;
@@ -37,6 +38,9 @@
     password: document.getElementById('userPasswordInput'),
     userRole: document.getElementById('userRoleInput'),
     userStatus: document.getElementById('userStatusInput'),
+    stylistFields: document.getElementById('stylistFields'),
+    specialty: document.getElementById('userSpecialtyInput'),
+    stylistServices: document.getElementById('stylistServicesInput'),
     title: document.getElementById('userModalTitle'),
     newBtn: document.getElementById('newUserButton'),
     closeBtn: document.getElementById('closeUserModal'),
@@ -85,7 +89,9 @@
       const isUserActive = u.status === 'active' || u.isActive !== false;
       const roleBadge = u.role === 'admin'
         ? '<span style="color:var(--salon-rose); font-weight:700;"><i class="fa-solid fa-crown"></i> Administrador</span>'
-        : '<span><i class="fa-solid fa-user"></i> Cliente</span>';
+        : u.role === 'stylist'
+          ? `<span><i class="fa-solid fa-scissors"></i> Peluquero<small style="display:block; color:var(--text-muted);">${escapeHtml(u.specialty || 'Sin oficio indicado')}</small></span>`
+          : '<span><i class="fa-solid fa-user"></i> Cliente</span>';
 
       return `
         <tr>
@@ -112,11 +118,34 @@
     if (elements.feedback) elements.feedback.textContent = `${filtered.length} cuenta(s) encontrada(s)`;
   };
 
+  const renderStylistServices = (selectedIds = []) => {
+    const services = getStoredServices().filter(service => service.status === 'available' || service.isActive !== false);
+    elements.stylistServices.innerHTML = services.length
+      ? services.map(service => `
+        <label class="stylist-service-option">
+          <input type="checkbox" name="stylistService" value="${escapeHtml(service.id)}" ${selectedIds.includes(service.id) ? 'checked' : ''}>
+          <span>${escapeHtml(service.name)}${service.category ? ` <small>(${escapeHtml(service.category)})</small>` : ''}</span>
+        </label>
+      `).join('')
+      : '<p>No hay servicios activos. Crea servicios antes de asignarlos al peluquero.</p>';
+  };
+
+  const updateStylistFields = (selectedIds = []) => {
+    const isStylist = elements.userRole.value === 'stylist';
+    elements.stylistFields.hidden = !isStylist;
+    elements.specialty.required = isStylist;
+    elements.stylistServices.querySelectorAll('input[name="stylistService"]').forEach(input => {
+      input.checked = selectedIds.includes(input.value);
+    });
+  };
+
   // 5. MODAL NUEVO / EDITAR USUARIO
   if (elements.newBtn) {
     elements.newBtn.addEventListener('click', () => {
       elements.form.reset();
       elements.id.value = '';
+      renderStylistServices();
+      updateStylistFields();
       elements.title.textContent = 'Nuevo Cliente / Usuario';
       elements.password.required = true;
       elements.password.placeholder = 'Mínimo 6 caracteres';
@@ -155,6 +184,9 @@
         elements.email.value = u.email;
         elements.userRole.value = u.role || 'user';
         elements.userStatus.value = u.status || 'active';
+        elements.specialty.value = u.specialty || '';
+        renderStylistServices(u.serviceIds || []);
+        updateStylistFields(u.serviceIds || []);
         elements.password.required = false;
         elements.password.placeholder = 'Dejar en blanco para mantener actual';
         elements.formError.textContent = '';
@@ -187,9 +219,21 @@
     const roleVal = elements.userRole.value;
     const statusVal = elements.userStatus.value;
     const passVal = elements.password.value;
+    const specialtyVal = elements.specialty.value.trim();
+    const serviceIds = [...elements.stylistServices.querySelectorAll('input[name="stylistService"]:checked')]
+      .map(input => input.value);
 
     if (!nameVal || !emailVal) {
       elements.formError.textContent = 'El nombre y correo electrónico son requeridos.';
+      return;
+    }
+    if (roleVal === 'stylist' && !specialtyVal) {
+      elements.formError.textContent = 'Indica el oficio o especialidad del peluquero.';
+      elements.specialty.focus();
+      return;
+    }
+    if (roleVal === 'stylist' && serviceIds.length === 0) {
+      elements.formError.textContent = 'Selecciona al menos un servicio que pueda realizar el peluquero.';
       return;
     }
 
@@ -207,7 +251,9 @@
       name: nameVal,
       email: emailVal,
       role: roleVal,
-      status: statusVal
+      status: statusVal,
+      specialty: roleVal === 'stylist' ? specialtyVal : '',
+      serviceIds: roleVal === 'stylist' ? serviceIds : []
     };
 
     if (passVal) {
@@ -238,6 +284,7 @@
   elements.search?.addEventListener('input', loadUsers);
   elements.role?.addEventListener('change', loadUsers);
   elements.status?.addEventListener('change', loadUsers);
+  elements.userRole?.addEventListener('change', () => updateStylistFields());
 
   // Tecla Escape
   document.addEventListener('keydown', (e) => {

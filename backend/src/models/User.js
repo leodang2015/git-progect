@@ -13,8 +13,28 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'admin'],
+    enum: ['user', 'admin', 'stylist'],
     default: 'user'
+  },
+  specialty: {
+    type: String,
+    trim: true,
+    maxlength: [120, 'El oficio no puede superar 120 caracteres'],
+    required: function () {
+      return this.role === 'stylist';
+    }
+  },
+  serviceIds: {
+    type: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Service'
+    }],
+    validate: {
+      validator: function (serviceIds) {
+        return this.role !== 'stylist' || serviceIds.length > 0;
+      },
+      message: 'Asigna al menos un servicio al peluquero'
+    }
   },
   status: {
     type: String,

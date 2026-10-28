@@ -1485,6 +1485,37 @@ button:disabled {
   border-color: #6a5299;
 }
 
+.stylist-service-options {
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+
+.stylist-service-options legend {
+  padding: 0 6px;
+  color: var(--text-main);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.stylist-service-options small {
+  color: var(--text-muted);
+}
+
+.stylist-service-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 8px 0;
+  font-size: 13px;
+}
+
+.stylist-service-option input {
+  width: auto;
+  margin: 0;
+}
+
 /* Feedback / Contador de estado elegante */
 .user-feedback {
   font-size: 13px;

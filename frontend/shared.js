@@ -14,12 +14,28 @@
 
   // 2. PROFESIONALES Y ESTILISTAS DEL SALÓN (Vida Real)
   const salonStylists = [
-    { id: 'sty-1', name: 'Sofía Mendoza', specialty: 'Master Colorimetría & Mechas', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80', badge: 'Colorista Top' },
-    { id: 'sty-2', name: 'Mateo Silva', specialty: 'Corte, Visagismo & Estilo', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80', badge: 'Estilista Senior' },
-    { id: 'sty-3', name: 'Valentina Ruiz', specialty: 'Manicura Rusa & Pedicura Spa', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=150&q=80', badge: 'Nail Artist' },
-    { id: 'sty-4', name: 'Camila Gómez', specialty: 'Tratamientos Capilares & Brillo', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80', badge: 'Terapeuta Capilar' },
-    { id: 'sty-any', name: 'Primer profesional disponible', specialty: 'Asignación automática de turno', avatar: '', badge: 'Sin preferencia' }
+    { id: 'sty-1', name: 'Sofía Mendoza', specialty: 'Master Colorimetría & Mechas', serviceIds: ['service-3'], avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80', badge: 'Colorista Top' },
+    { id: 'sty-2', name: 'Mateo Silva', specialty: 'Corte, Visagismo & Estilo', serviceIds: ['service-1'], avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80', badge: 'Estilista Senior' },
+    { id: 'sty-3', name: 'Valentina Ruiz', specialty: 'Manicura Rusa & Pedicura Spa', serviceIds: ['service-4'], avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=150&q=80', badge: 'Nail Artist' },
+    { id: 'sty-4', name: 'Camila Gómez', specialty: 'Tratamientos Capilares & Brillo', serviceIds: ['service-2'], avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80', badge: 'Terapeuta Capilar' }
   ];
+
+  const getAvailableStylists = (serviceId) => {
+    if (!serviceId) return [];
+    const storedStylists = getStoredUsers()
+      .filter(user => user.role === 'stylist' && user.status === 'active' && Array.isArray(user.serviceIds) && user.serviceIds.includes(serviceId))
+      .map(user => ({
+        id: user.id,
+        name: user.name,
+        specialty: user.specialty || 'Peluquero',
+        avatar: '',
+        badge: 'Peluquero'
+      }));
+
+    return [...salonStylists, ...storedStylists].filter(stylist => stylist.serviceIds
+      ? stylist.serviceIds.includes(serviceId)
+      : true);
+  };
 
   // 3. CATÁLOGO BASE DE SERVICIOS
   const defaultServices = [
@@ -161,9 +177,12 @@
       if (Array.isArray(data) && data.length > 0) {
         data.forEach(r => {
           if (!r.stylistName) {
-            const randomSty = salonStylists[Math.floor(Math.random() * (salonStylists.length - 1))];
-            r.stylistId = randomSty.id;
-            r.stylistName = randomSty.name;
+            const availableStylists = getAvailableStylists(r.serviceId);
+            const randomSty = availableStylists[Math.floor(Math.random() * availableStylists.length)];
+            if (randomSty) {
+              r.stylistId = randomSty.id;
+              r.stylistName = randomSty.name;
+            }
           }
           if (!r.hairLength) r.hairLength = 'Medio';
         });
@@ -288,7 +307,8 @@
     confirmed: 'Confirmada',
     pending: 'Pendiente',
     completed: 'Finalizada',
-    cancelled: 'Cancelada'
+    cancelled: 'Cancelada',
+    rejected: 'Rechazada'
   };
 
   const normalizeStatus = (status) => {
@@ -298,6 +318,7 @@
     if (s === 'pendiente' || s === 'pending') return 'pending';
     if (s === 'finalizada' || s === 'completed') return 'completed';
     if (s === 'cancelada' || s === 'cancelled') return 'cancelled';
+    if (s === 'rechazada' || s === 'rejected') return 'rejected';
     return s;
   };
 
@@ -332,7 +353,11 @@
     if (userNameEl) userNameEl.textContent = auth.userName;
 
     const userRoleEl = document.getElementById('userRole');
-    if (userRoleEl) userRoleEl.textContent = auth.isAdmin ? 'Administrador' : 'Cliente';
+    if (userRoleEl) {
+      userRoleEl.textContent = auth.isAdmin
+        ? 'Administrador'
+        : auth.currentUser.role === 'stylist' ? 'Peluquero' : 'Cliente';
+    }
 
     const userInitialsEl = document.getElementById('userInitials');
     if (userInitialsEl) userInitialsEl.textContent = auth.initials;
@@ -455,12 +480,22 @@
         services.map(s => `<option value="${escapeHtml(s.id)}" data-price="${s.price || 0}" data-duration="${s.duration || 45}">${escapeHtml(s.name)} — ${formatPrice(s.price)} (${s.duration || 45} min)</option>`).join('');
     }
 
-    // Poblar estilistas
-    if (stylistSelect) {
-      stylistSelect.innerHTML = salonStylists.map(sty =>
-        `<option value="${escapeHtml(sty.id)}">${escapeHtml(sty.name)} ${sty.badge ? `(${sty.badge})` : ''}</option>`
-      ).join('');
-    }
+    const populateStylists = (selectedId = 'sty-any') => {
+      if (!stylistSelect) return;
+      const availableStylists = getAvailableStylists(serviceSelect?.value);
+      if (!availableStylists.length) {
+        stylistSelect.innerHTML = '<option value="" selected disabled>No hay profesionales para este servicio</option>';
+        return;
+      }
+
+      stylistSelect.innerHTML = '<option value="sty-any">Primer profesional disponible</option>' +
+        availableStylists.map(sty =>
+          `<option value="${escapeHtml(sty.id)}">${escapeHtml(sty.name)} — ${escapeHtml(sty.specialty)}</option>`
+        ).join('');
+      stylistSelect.value = availableStylists.some(sty => sty.id === selectedId) ? selectedId : 'sty-any';
+    };
+
+    populateStylists();
 
     // Fecha mínima = hoy
     if (dateInput) {
@@ -497,7 +532,10 @@
       updateFlowSteps();
     };
 
-    serviceSelect?.addEventListener('change', updateSummary);
+    serviceSelect?.addEventListener('change', () => {
+      populateStylists();
+      updateSummary();
+    });
     stylistSelect?.addEventListener('change', updateSummary);
     dateInput?.addEventListener('change', updateSummary);
     timeSelect?.addEventListener('change', updateSummary);
@@ -509,6 +547,7 @@
       if (preselectedServiceId && serviceSelect) {
         serviceSelect.value = preselectedServiceId;
       }
+      populateStylists();
 
       // No pre-seleccionar fecha automáticamente para respetar el orden de selección
       if (dateInput) {
@@ -577,8 +616,25 @@
         return;
       }
 
-      const stylistObj = salonStylists.find(s => s.id === stylistId) || salonStylists[salonStylists.length - 1];
       const allReservations = getStoredReservations();
+      const availableStylists = getAvailableStylists(serviceId);
+      if (!availableStylists.length) {
+        if (formError) formError.textContent = 'No hay profesionales asignados a este servicio. Contacta al salón para agendar.';
+        return;
+      }
+
+      const stylistObj = stylistId === 'sty-any'
+        ? availableStylists.find(stylist => !allReservations.some(reservation =>
+          reservation.stylistId === stylist.id &&
+          reservation.date === dateVal &&
+          reservation.time === timeVal &&
+          ['confirmed', 'pending'].includes(normalizeStatus(reservation.status))
+        ))
+        : availableStylists.find(stylist => stylist.id === stylistId);
+      if (!stylistObj) {
+        if (formError) formError.textContent = 'No hay profesionales disponibles para ese horario. Elige otra hora.';
+        return;
+      }
 
       // Validación de conflictos de agenda para el profesional
       if (stylistId !== 'sty-any') {
@@ -672,6 +728,7 @@
     RESERVATIONS_KEY,
     USERS_KEY,
     salonStylists,
+    getAvailableStylists,
     defaultServices,
     defaultReservations,
     getStoredServices,

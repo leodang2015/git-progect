@@ -1,7 +1,7 @@
 const User = require('../models/User');
 
-const publicUserFields = 'name email role status createdAt updatedAt';
-const editableFields = ['name', 'email', 'password', 'role', 'status'];
+const publicUserFields = 'name email role specialty serviceIds status createdAt updatedAt';
+const editableFields = ['name', 'email', 'password', 'role', 'specialty', 'serviceIds', 'status'];
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -10,6 +10,8 @@ const serializeUser = (user) => ({
   name: user.name,
   email: user.email,
   role: user.role,
+  specialty: user.specialty,
+  serviceIds: user.serviceIds,
   status: user.status,
   createdAt: user.createdAt,
   updatedAt: user.updatedAt

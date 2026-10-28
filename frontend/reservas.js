@@ -15,6 +15,7 @@
 
   const {
     salonStylists,
+    getAvailableStylists,
     getStoredServices,
     getStoredReservations,
     saveStoredReservations,
@@ -59,6 +60,7 @@
     countPending: document.getElementById('countPending'),
     countCompleted: document.getElementById('countCompleted'),
     countCancelled: document.getElementById('countCancelled'),
+    countRejected: document.getElementById('countRejected'),
     // Paginación
     paginationWrap: document.getElementById('reservationPagination'),
     paginationInfo: document.getElementById('reservationPaginationInfo'),
@@ -156,7 +158,7 @@
 
   // 6. ACTUALIZAR CONTADORES DE PÍLDORAS
   const updateStatusCounts = (userScopeList) => {
-    const counts = { all: userScopeList.length, confirmed: 0, pending: 0, completed: 0, cancelled: 0 };
+    const counts = { all: userScopeList.length, confirmed: 0, pending: 0, completed: 0, cancelled: 0, rejected: 0 };
     userScopeList.forEach(r => {
       const norm = normalizeStatus(r.status);
       if (counts[norm] !== undefined) counts[norm]++;
@@ -167,6 +169,7 @@
     if (elements.countPending) elements.countPending.textContent = counts.pending;
     if (elements.countCompleted) elements.countCompleted.textContent = counts.completed;
     if (elements.countCancelled) elements.countCancelled.textContent = counts.cancelled;
+    if (elements.countRejected) elements.countRejected.textContent = counts.rejected;
   };
 
   // 7. RENDERIZAR VISTA DE TARJETAS TIPO SALÓN
@@ -175,7 +178,9 @@
     elements.cardsContainer.innerHTML = items.map(res => {
       const norm = normalizeStatus(res.status);
       const label = statusLabels[norm] || res.status;
-      const stylist = salonStylists.find(s => s.id === res.stylistId) || { name: res.stylistName || 'Estilista', avatar: '', specialty: 'Estilista de Salón' };
+      const stylist = getAvailableStylists(res.serviceId).find(s => s.id === res.stylistId) ||
+        salonStylists.find(s => s.id === res.stylistId) ||
+        { name: res.stylistName || 'Estilista', avatar: '', specialty: 'Estilista de Salón' };
       const avatarSrc = stylist.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80';
 
       return `
@@ -230,6 +235,9 @@
               <button class="action-btn confirm-admin-btn" data-quick-confirm="${escapeHtml(res.id)}" type="button" title="Confirmar cita del cliente">
                 <i class="fa-solid fa-check"></i> Confirmar
               </button>
+              <button class="action-btn reject-admin-btn" data-quick-reject="${escapeHtml(res.id)}" type="button" title="Rechazar cita del cliente">
+                <i class="fa-solid fa-xmark"></i> Rechazar
+              </button>
             ` : ''}
             ${auth.isAdmin && norm === 'confirmed' ? `
               <button class="action-btn complete-admin-btn" data-quick-complete="${escapeHtml(res.id)}" type="button" title="Marcar como atendida y finalizada">
@@ -239,7 +247,7 @@
             <button class="action-btn detail-btn" data-detail-id="${escapeHtml(res.id)}" type="button" title="Ver comprobante y detalles de cita">
               <i class="fa-solid fa-eye"></i> Comprobante
             </button>
-            ${norm !== 'cancelled' && norm !== 'completed' ? `
+            ${!['cancelled', 'completed', 'rejected'].includes(norm) ? `
               <button class="action-btn edit-btn" data-edit-id="${escapeHtml(res.id)}" type="button" title="Reprogramar fecha u hora">
                 <i class="fa-solid fa-calendar-days"></i> Reprogramar
               </button>
@@ -248,7 +256,7 @@
               </button>
             ` : `
               <span class="status-indicator-muted" style="margin-left:auto; font-size:12px; color:var(--text-dim); display:flex; align-items:center; gap:6px;">
-                ${norm === 'completed' ? '<i class="fa-solid fa-check-double"></i> Atendida' : '<i class="fa-solid fa-circle-xmark"></i> Cancelada'}
+                ${norm === 'completed' ? '<i class="fa-solid fa-check-double"></i> Atendida' : norm === 'rejected' ? '<i class="fa-solid fa-circle-xmark"></i> Rechazada' : '<i class="fa-solid fa-ban"></i> Cancelada'}
               </span>
             `}
           </div>
@@ -280,7 +288,7 @@
               <button class="action-btn detail-btn" data-detail-id="${escapeHtml(res.id)}" type="button" title="Ver comprobante de la cita">
                 <i class="fa-solid fa-eye"></i>
               </button>
-              ${norm !== 'cancelled' && norm !== 'completed' ? `
+              ${!['cancelled', 'completed', 'rejected'].includes(norm) ? `
                 <button class="action-btn edit-btn" data-edit-id="${escapeHtml(res.id)}" type="button" title="Reprogramar">
                   <i class="fa-solid fa-calendar-days"></i>
                 </button>
@@ -291,6 +299,9 @@
               ${auth.isAdmin && norm === 'pending' ? `
                 <button class="action-btn confirm-admin-btn" data-quick-confirm="${escapeHtml(res.id)}" type="button" title="Confirmar">
                   <i class="fa-solid fa-check"></i>
+                </button>
+                <button class="action-btn reject-admin-btn" data-quick-reject="${escapeHtml(res.id)}" type="button" title="Rechazar">
+                  <i class="fa-solid fa-xmark"></i>
                 </button>
               ` : ''}
               ${auth.isAdmin && norm === 'confirmed' ? `
@@ -460,10 +471,10 @@
     }
 
     if (elements.editFromDetailBtn) {
-      elements.editFromDetailBtn.disabled = norm === 'cancelled';
+      elements.editFromDetailBtn.disabled = ['cancelled', 'completed', 'rejected'].includes(norm);
     }
     if (elements.cancelFromDetailBtn) {
-      elements.cancelFromDetailBtn.disabled = norm === 'cancelled' || norm === 'completed';
+      elements.cancelFromDetailBtn.disabled = ['cancelled', 'completed', 'rejected'].includes(norm);
     }
 
     elements.detailModal.hidden = false;
@@ -488,12 +499,6 @@
         services.map(s => `<option value="${escapeHtml(s.id)}" data-name="${escapeHtml(s.name)}" data-price="${s.price || 0}">${escapeHtml(s.name)} — ${formatPrice(s.price)}</option>`).join('');
     }
 
-    if (elements.editStylist) {
-      elements.editStylist.innerHTML = salonStylists.map(sty =>
-        `<option value="${escapeHtml(sty.id)}">${escapeHtml(sty.name)} ${sty.badge ? `(${sty.badge})` : ''}</option>`
-      ).join('');
-    }
-
     if (elements.editDate) {
       const todayISO = new Date().toISOString().split('T')[0];
       elements.editDate.min = todayISO;
@@ -501,6 +506,21 @@
   };
 
   setupEditFormOptions();
+
+  const populateEditStylists = (serviceId, selectedId = 'sty-any') => {
+    if (!elements.editStylist) return;
+    const availableStylists = getAvailableStylists(serviceId);
+    if (!availableStylists.length) {
+      elements.editStylist.innerHTML = '<option value="" selected disabled>No hay profesionales para este servicio</option>';
+      return;
+    }
+
+    elements.editStylist.innerHTML = '<option value="sty-any">Primer profesional disponible</option>' +
+      availableStylists.map(stylist =>
+        `<option value="${escapeHtml(stylist.id)}">${escapeHtml(stylist.name)} — ${escapeHtml(stylist.specialty)}</option>`
+      ).join('');
+    elements.editStylist.value = availableStylists.some(stylist => stylist.id === selectedId) ? selectedId : 'sty-any';
+  };
 
   const updateEditSummary = () => {
     const selectedOption = elements.editService.options[elements.editService.selectedIndex];
@@ -512,7 +532,10 @@
     elements.editSummaryPrice.textContent = formatPrice(srvPrice);
   };
 
-  elements.editService?.addEventListener('change', updateEditSummary);
+  elements.editService?.addEventListener('change', () => {
+    populateEditStylists(elements.editService.value);
+    updateEditSummary();
+  });
   elements.editStylist?.addEventListener('change', updateEditSummary);
   elements.editDate?.addEventListener('change', updateEditSummary);
   elements.editTime?.addEventListener('change', updateEditSummary);
@@ -525,7 +548,7 @@
     elements.editCodeBadge.textContent = `#${res.id}`;
 
     if (elements.editService) elements.editService.value = res.serviceId;
-    if (elements.editStylist) elements.editStylist.value = res.stylistId || 'sty-any';
+    populateEditStylists(res.serviceId, res.stylistId || 'sty-any');
     if (elements.editHairLength) elements.editHairLength.value = res.hairLength || 'Medio';
     if (elements.editDate) elements.editDate.value = res.date;
     if (elements.editTime) elements.editTime.value = res.time;
@@ -576,22 +599,28 @@
       return;
     }
 
-    const stylistObj = salonStylists.find(s => s.id === stylistId) || salonStylists[salonStylists.length - 1];
     const allReservations = getStoredReservations();
+    const availableStylists = getAvailableStylists(serviceId);
+    if (!availableStylists.length) {
+      elements.editFormError.textContent = 'No hay profesionales asignados a este servicio.';
+      return;
+    }
 
-    // Verificación de conflicto de horario
-    if (stylistId !== 'sty-any') {
-      const isConflict = allReservations.some(r =>
+    const hasConflict = (stylist) => allReservations.some(r =>
         r.id !== currentEditingReservation.id &&
-        r.stylistId === stylistId &&
+        r.stylistId === stylist.id &&
         r.date === dateVal &&
         r.time === timeVal &&
         ['confirmed', 'pending'].includes(normalizeStatus(r.status))
       );
-      if (isConflict) {
-        elements.editFormError.textContent = `${stylistObj.name} ya tiene una cita agendada en ese horario. Por favor selecciona otra hora.`;
-        return;
-      }
+    const stylistObj = stylistId === 'sty-any'
+      ? availableStylists.find(stylist => !hasConflict(stylist))
+      : availableStylists.find(stylist => stylist.id === stylistId);
+    if (!stylistObj || hasConflict(stylistObj)) {
+      elements.editFormError.textContent = stylistObj
+        ? `${stylistObj.name} ya tiene una cita agendada en ese horario. Por favor selecciona otra hora.`
+        : 'No hay profesionales disponibles para ese horario. Elige otra hora.';
+      return;
     }
 
     const services = getStoredServices();
@@ -731,9 +760,10 @@
 
     const confirmAdminBtn = e.target.closest('[data-quick-confirm]');
     if (confirmAdminBtn) {
+      if (!auth.isAdmin) return;
       const id = confirmAdminBtn.dataset.quickConfirm;
       const target = allReservations.find(r => r.id === id);
-      if (target) {
+      if (target && normalizeStatus(target.status) === 'pending') {
         target.status = 'confirmed';
         target.confirmedAt = new Date().toISOString();
         saveStoredReservations(allReservations);
@@ -743,8 +773,24 @@
       return;
     }
 
+    const rejectAdminBtn = e.target.closest('[data-quick-reject]');
+    if (rejectAdminBtn) {
+      if (!auth.isAdmin) return;
+      const id = rejectAdminBtn.dataset.quickReject;
+      const target = allReservations.find(r => r.id === id);
+      if (target && normalizeStatus(target.status) === 'pending') {
+        target.status = 'rejected';
+        target.rejectedAt = new Date().toISOString();
+        saveStoredReservations(allReservations);
+        showFeedback(`Cita #${id} rechazada.`, 'success');
+        renderReservations();
+      }
+      return;
+    }
+
     const completeAdminBtn = e.target.closest('[data-quick-complete]');
     if (completeAdminBtn) {
+      if (!auth.isAdmin) return;
       const id = completeAdminBtn.dataset.quickComplete;
       const target = allReservations.find(r => r.id === id);
       if (target) {

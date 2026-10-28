@@ -95,6 +95,7 @@
             <option value="">Todos los roles</option>
             <option value="admin">Administrador</option>
             <option value="user">Cliente</option>
+            <option value="stylist">Peluquero</option>
           </select>
           <select id="statusFilter" aria-label="Filtrar por estado">
             <option value="">Todos los estados</option>
@@ -163,6 +164,7 @@
           <select id="userRoleInput" name="role">
             <option value="user">Cliente</option>
             <option value="admin">Administrador</option>
+            <option value="stylist">Peluquero</option>
           </select>
         </label>
         <label>
@@ -172,6 +174,18 @@
             <option value="inactive">Inactivo</option>
           </select>
         </label>
+      </div>
+
+      <div id="stylistFields" hidden>
+        <label for="userSpecialtyInput">
+          Oficio o especialidad
+          <input id="userSpecialtyInput" name="specialty" maxlength="120" placeholder="Ej: Colorista, barbero, especialista en uñas">
+        </label>
+        <fieldset class="stylist-service-options">
+          <legend>Servicios que puede realizar</legend>
+          <div id="stylistServicesInput"></div>
+          <small>El peluquero solo aparecerá al cliente para los servicios seleccionados.</small>
+        </fieldset>
       </div>
 
       <p class="modal-error" id="userFormError" role="alert"></p>
