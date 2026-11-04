@@ -163,7 +163,7 @@
   const getStoredReservations = () => {
     try {
       const data = JSON.parse(localStorage.getItem(RESERVATIONS_KEY) || 'null');
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         data.forEach(r => {
           if (!r.hairLength) r.hairLength = 'Medio';
         });
@@ -178,6 +178,25 @@
 
   const saveStoredReservations = (reservations) => {
     localStorage.setItem(RESERVATIONS_KEY, JSON.stringify(reservations));
+  };
+
+  const apiRequest = async (path, options = {}) => {
+    const response = await fetch(path, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${getSession()?.token || ''}`,
+        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...options.headers
+      }
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const validationMessages = result.errores?.map(error => error.mensaje).join(' ');
+      const error = new Error(result.message || validationMessages || 'No se pudo completar la operación.');
+      error.status = response.status;
+      throw error;
+    }
+    return result.data;
   };
 
   const getStoredUsers = () => {
@@ -304,13 +323,21 @@
   };
 
   const getUserScopeReservations = (allReservations, currentUser, isAdmin) => {
+    if (isAdmin) return allReservations;
+
+    if (currentUser.role === 'stylist') {
+      const stylistId = currentUser.id ? String(currentUser.id) : '';
+      return stylistId
+        ? allReservations.filter(res => String(res.stylistId) === stylistId)
+        : [];
+    }
+
     const userName = (currentUser.name || '').toLowerCase();
     const userEmail = (currentUser.email || '').toLowerCase();
     const userId = currentUser.id ? String(currentUser.id) : '';
     const isDemoUser = (userEmail === 'usuario@ejemplo.com') || (userId === 'usr-demo') || (userName === 'usuario demo');
 
     return allReservations.filter(res => {
-      if (isAdmin) return true;
       if (res.userId && userId && String(res.userId) === userId) return true;
       if (res.userEmail && userEmail && res.userEmail.toLowerCase() === userEmail) return true;
       if (res.userName && userName && res.userName.toLowerCase() === userName) return true;
@@ -632,9 +659,10 @@
     });
 
     // Envío del Formulario
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (formError) formError.textContent = '';
+      const submitButton = form.querySelector('[type="submit"]');
 
       const serviceId = serviceSelect?.value;
       const stylistId = stylistSelect?.value || 'sty-any';
@@ -673,65 +701,57 @@
         return;
       }
 
-      const allReservations = getStoredReservations();
       const matchingStylists = availableStylists.filter(stylist => stylist.workAreas.includes(workArea));
       if (!matchingStylists.length) {
         if (formError) formError.textContent = 'No hay peluqueros que hayan registrado esa zona para el servicio seleccionado.';
         return;
       }
 
-      const stylistObj = stylistId === 'sty-any'
-        ? matchingStylists.find(stylist => !allReservations.some(reservation =>
-          reservation.stylistId === stylist.id &&
-          reservation.date === dateVal &&
-          reservation.time === timeVal &&
-          ['confirmed', 'pending'].includes(normalizeStatus(reservation.status))
-        ))
-        : matchingStylists.find(stylist => stylist.id === stylistId);
-      if (!stylistObj) {
+      const stylistCandidates = stylistId === 'sty-any'
+        ? matchingStylists
+        : matchingStylists.filter(stylist => stylist.id === stylistId);
+      if (!stylistCandidates.length) {
         if (formError) formError.textContent = 'No hay profesionales disponibles para ese horario. Elige otra hora.';
         return;
       }
 
-      // Validación de conflictos de agenda para el profesional
-      if (stylistId !== 'sty-any') {
-        const conflict = allReservations.find(r =>
-          r.stylistId === stylistObj.id &&
-          r.date === dateVal &&
-          r.time === timeVal &&
-          ['confirmed', 'pending'].includes(normalizeStatus(r.status))
-        );
-        if (conflict) {
-          if (formError) formError.textContent = `${stylistObj.name} ya tiene una cita reservada a las ${timeVal} el día ${formatReadableDate(dateVal)}. Por favor elige otro horario o selecciona "Primer profesional disponible".`;
-          return;
+      const selectedService = services.find(s => s.id === serviceId) || { name: 'Servicio de Belleza', price: 0 };
+
+      let newReservation;
+      if (submitButton) submitButton.disabled = true;
+      try {
+        let lastConflict;
+        for (const stylist of stylistCandidates) {
+          try {
+            newReservation = await apiRequest('/api/reservations', {
+              method: 'POST',
+              body: JSON.stringify({
+                serviceName: selectedService.name,
+                stylistId: stylist.id,
+                hairLength: workArea,
+                date: dateVal,
+                time: timeVal,
+                notes: notesVal
+              })
+            });
+            break;
+          } catch (error) {
+            if (stylistId !== 'sty-any' || error.status !== 409) throw error;
+            lastConflict = error;
+          }
         }
+        if (!newReservation) throw lastConflict || new Error('No hay profesionales disponibles para ese horario.');
+      } catch (error) {
+        if (formError) formError.textContent = error.message;
+        if (submitButton) submitButton.disabled = false;
+        return;
       }
 
-      const selectedService = services.find(s => s.id === serviceId) || { name: 'Servicio de Belleza', price: 0 };
-      const uniqueNum = Math.floor(1000 + Math.random() * 9000);
-      const newReservationId = `RES-${new Date().getFullYear()}-${uniqueNum}`;
-
-      const newReservation = {
-        id: newReservationId,
-        serviceId,
-        serviceName: selectedService.name,
-        stylistId: stylistObj.id,
-        stylistName: stylistObj.name,
-        hairLength: workArea,
-        userName: auth.userName,
-        userEmail: auth.currentUser.email || '',
-        userId: auth.currentUser.id || 'usr-client',
-        date: dateVal,
-        time: timeVal,
-        price: selectedService.price || 0,
-        notes: notesVal || 'Sin especificaciones',
-        status: 'pending',
-        createdAt: new Date().toISOString()
-      };
-
-      allReservations.unshift(newReservation);
-      saveStoredReservations(allReservations);
+      const refreshedReservations = getStoredReservations().filter(reservation => reservation.id !== newReservation.id);
+      refreshedReservations.unshift(newReservation);
+      saveStoredReservations(refreshedReservations);
       closeBookingModal();
+      if (submitButton) submitButton.disabled = false;
 
       // Abrir modal de ticket exitoso
       if (successModal) {
@@ -791,6 +811,7 @@
     saveStoredServices,
     getStoredReservations,
     saveStoredReservations,
+    apiRequest,
     getStoredUsers,
     saveStoredUsers,
     getSession,

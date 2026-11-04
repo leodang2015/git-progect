@@ -1,4 +1,4 @@
-# Gestión de usuarios
+# Gestión de usuarios y reservas
 
 La API reutiliza el modelo `User` y está protegida con JWT. Las rutas administrativas requieren un token de administrador; la consulta de peluqueros está disponible para usuarios autenticados y el perfil/zona de trabajo solo para la cuenta peluquero autenticada.
 
@@ -14,8 +14,14 @@ La API reutiliza el modelo `User` y está protegida con JWT. Las rutas administr
 
 Las respuestas de usuarios contienen `id`, `name`, `email`, `role`, `specialty`, `serviceIds`, `workAreas`, `status`, `createdAt` y `updatedAt`; nunca exponen la contraseña ni los datos de bloqueo de inicio de sesión. Las contraseñas nuevas o actualizadas se hashean con el middleware existente del modelo. Los peluqueros administran sus zonas en `peluquero.html`; para aparecer como opción reservable, la cuenta debe estar activa, tener asignado el servicio seleccionado y registrar al menos una zona. La reserva muestra primero la zona y después el estilista disponible para esa combinación.
 
-El catálogo que usa actualmente el formulario de reserva proviene de `localStorage`, mientras que la consulta de peluqueros busca el nombre del servicio en MongoDB. Para que la búsqueda encuentre coincidencia, el nombre del servicio del catálogo local debe existir también en MongoDB con el mismo texto.
+## Reservas
 
-Ejecuta `npm test` desde `backend/` para validar el esquema de usuario.
+- `GET /api/reservations`: requiere sesión. Devuelve las reservas propias del cliente, las citas asignadas al peluquero autenticado o todas las reservas para el administrador.
+- `POST /api/reservations`: requiere sesión y recibe `serviceName`, `stylistId`, `hairLength`, `date` (`YYYY-MM-DD`), `time` y `notes`. Verifica que el servicio esté activo, el peluquero tenga asignado ese servicio y zona, y que el horario esté libre. El cliente, el precio y el estado se determinan en el servidor; la cita se guarda en MongoDB como pendiente.
+- `PATCH /api/reservations/:id/cancel`: requiere sesión. Solo permite cancelar al cliente titular, al peluquero asignado o a un administrador, y únicamente si la cita está pendiente o confirmada.
+
+Las respuestas de reserva incluyen `id` (código para mostrar), `mongoId`, `serviceId`, `serviceName`, `stylistId`, `stylistName`, datos básicos del cliente, fecha, hora, zona, precio, estado y marcas de tiempo. El catálogo del formulario sigue cargándose desde `localStorage`; el nombre del servicio debe coincidir con uno activo en MongoDB.
+
+Ejecuta `npm test` desde `backend/` para validar los esquemas de reservas, usuarios y servicios.
 
 El panel administrativo lee y guarda los usuarios directamente en MongoDB; no crea cuentas de demostración automáticamente. Ejecuta `npm run seed` desde `backend/` para cargar los servicios de demostración. Las credenciales de las cuentas de prueba que ya se crearon están en [../CREDENCIALES_DEMO.md](../CREDENCIALES_DEMO.md); no las uses en producción.

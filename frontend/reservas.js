@@ -9,6 +9,7 @@
   // 1. VALIDACIÓN DE SESIÓN
   const auth = window.BellaSalon.validateSession();
   if (!auth) return;
+  const isStylist = auth.currentUser.role === 'stylist';
 
   // 2. CONFIGURACIÓN DEL LAYOUT (Sidebar activo: navReservas)
   window.BellaSalon.setupSharedLayout(auth, 'navReservas');
@@ -18,6 +19,7 @@
     getStoredServices,
     getStoredReservations,
     saveStoredReservations,
+    apiRequest,
     getUserScopeReservations,
     escapeHtml,
     formatPrice,
@@ -34,6 +36,15 @@
     if (titleEl) titleEl.textContent = 'Agenda General del Salón';
     const subTitleEl = document.getElementById('reservationsSubtitle');
     if (subTitleEl) subTitleEl.textContent = 'Control general de citas agendadas por clientes, atención de estilistas y gestión de turnos.';
+  }
+  if (isStylist) {
+    const titleEl = document.getElementById('reservationsTitle');
+    if (titleEl) titleEl.textContent = 'Citas asignadas a mí';
+    const subTitleEl = document.getElementById('reservationsSubtitle');
+    if (subTitleEl) subTitleEl.textContent = 'Consulta las citas de tus clientes y cancela las que no puedas atender.';
+    const newReservationButton = document.getElementById('newReservationButton');
+    if (newReservationButton) newReservationButton.hidden = true;
+    document.getElementById('reservationClientHeader')?.classList.remove('admin-only');
   }
 
   // 3. ELEMENTOS DEL DOM
@@ -142,7 +153,7 @@
     renderReservations();
   });
 
-  if (elements.openNewBtn) {
+  if (!isStylist && elements.openNewBtn) {
     elements.openNewBtn.addEventListener('click', () => {
       bookingHandler.openBookingModal();
     });
@@ -152,7 +163,7 @@
   const urlParams = new URLSearchParams(window.location.search);
   const paramServiceId = urlParams.get('serviceId');
   const paramNew = urlParams.get('new');
-  if (paramServiceId || paramNew) {
+  if (!isStylist && (paramServiceId || paramNew)) {
     window.setTimeout(() => {
       bookingHandler.openBookingModal(paramServiceId);
     }, 200);
@@ -224,7 +235,7 @@
               <strong class="price-val">${formatPrice(res.price || 0)}</strong>
             </div>
 
-            ${auth.isAdmin && res.userName ? `
+            ${(auth.isAdmin || isStylist) && res.userName ? `
               <div class="admin-client-info" style="font-size:12px; color:var(--text-muted); padding:6px 0 2px; border-top:1px dashed var(--border-subtle); margin-top:6px;">
                 <i class="fa-solid fa-user" style="color:var(--salon-rose);"></i> Cliente: <strong>${escapeHtml(res.userName)}</strong>
               </div>
@@ -249,9 +260,11 @@
               <i class="fa-solid fa-eye"></i> Comprobante
             </button>
             ${!['cancelled', 'completed', 'rejected'].includes(norm) ? `
+              ${!isStylist ? `
               <button class="action-btn edit-btn" data-edit-id="${escapeHtml(res.id)}" type="button" title="Reprogramar fecha u hora">
                 <i class="fa-solid fa-calendar-days"></i> Reprogramar
               </button>
+              ` : ''}
               <button class="action-btn cancel-btn" data-cancel-id="${escapeHtml(res.id)}" type="button" title="Cancelar esta cita">
                 <i class="fa-solid fa-ban"></i> Cancelar
               </button>
@@ -281,7 +294,7 @@
           </td>
           <td>${formatReadableDate(res.date)}</td>
           <td>${escapeHtml(res.time)}</td>
-          ${auth.isAdmin ? `<td class="admin-only"><strong>${escapeHtml(res.userName || 'Cliente')}</strong></td>` : ''}
+          ${(auth.isAdmin || isStylist) ? `<td class="${auth.isAdmin ? 'admin-only' : ''}"><strong>${escapeHtml(res.userName || 'Cliente')}</strong></td>` : ''}
           <td><strong>${formatPrice(res.price || 0)}</strong></td>
           <td><span class="status-badge ${norm}">${escapeHtml(label)}</span></td>
           <td>
@@ -290,9 +303,11 @@
                 <i class="fa-solid fa-eye"></i>
               </button>
               ${!['cancelled', 'completed', 'rejected'].includes(norm) ? `
+                ${!isStylist ? `
                 <button class="action-btn edit-btn" data-edit-id="${escapeHtml(res.id)}" type="button" title="Reprogramar">
                   <i class="fa-solid fa-calendar-days"></i>
                 </button>
+                ` : ''}
                 <button class="action-btn cancel-btn" data-cancel-id="${escapeHtml(res.id)}" type="button" title="Cancelar">
                   <i class="fa-solid fa-ban"></i>
                 </button>
@@ -473,6 +488,7 @@
 
     if (elements.editFromDetailBtn) {
       elements.editFromDetailBtn.disabled = ['cancelled', 'completed', 'rejected'].includes(norm);
+      elements.editFromDetailBtn.hidden = isStylist;
     }
     if (elements.cancelFromDetailBtn) {
       elements.cancelFromDetailBtn.disabled = ['cancelled', 'completed', 'rejected'].includes(norm);
@@ -610,7 +626,7 @@
   elements.editTime?.addEventListener('change', updateEditSummary);
 
   const openEditModal = (res) => {
-    if (!res) return;
+    if (!res || isStylist) return;
     currentEditingReservation = res;
     elements.editFormError.textContent = '';
     elements.editId.value = res.id;
@@ -763,7 +779,8 @@
 
   // 12. MODAL CANCELAR CITA (HUS-09)
   const openCancelModal = (res) => {
-    if (!res) return;
+    if (!res || (isStylist && String(res.stylistId) !== String(auth.currentUser.id))) return;
+    if (['cancelled', 'completed', 'rejected'].includes(normalizeStatus(res.status))) return;
     currentCancellingReservation = res;
     elements.cancelModalService.textContent = res.serviceName;
     elements.cancelModalDate.textContent = formatReadableDate(res.date);
@@ -785,25 +802,38 @@
     if (e.target === elements.cancelModal) closeCancelModal();
   });
 
-  elements.confirmCancelBtn?.addEventListener('click', () => {
+  elements.confirmCancelBtn?.addEventListener('click', async () => {
     if (!currentCancellingReservation) return;
+    const reservationToCancel = currentCancellingReservation;
     const allReservations = getStoredReservations();
-    const targetIdx = allReservations.findIndex(r => r.id === currentCancellingReservation.id);
+    const targetIdx = allReservations.findIndex(r => r.id === reservationToCancel.id);
+    if (targetIdx < 0 || !reservationToCancel.mongoId ||
+      (isStylist && String(allReservations[targetIdx].stylistId) !== String(auth.currentUser.id))) {
+      elements.cancelError.textContent = 'No se encontró la cita o no tienes permiso para cancelarla.';
+      return;
+    }
 
-    if (targetIdx >= 0) {
-      allReservations[targetIdx].status = 'cancelled';
-      allReservations[targetIdx].cancelledAt = new Date().toISOString();
+    elements.confirmCancelBtn.disabled = true;
+    try {
+      const cancelledReservation = await apiRequest(`/api/reservations/${encodeURIComponent(reservationToCancel.mongoId)}/cancel`, {
+        method: 'PATCH'
+      });
+      allReservations[targetIdx] = cancelledReservation;
       saveStoredReservations(allReservations);
+
+      closeCancelModal();
+
+      if (!elements.detailModal.hidden && currentSelectedDetailReservation?.id === reservationToCancel.id) {
+        openDetailModal(cancelledReservation);
+      }
+
+      showFeedback(`✓ Cita #${reservationToCancel.id} cancelada. Horario liberado en el salón.`, 'success');
+      renderReservations();
+    } catch (error) {
+      elements.cancelError.textContent = error.message;
+    } finally {
+      elements.confirmCancelBtn.disabled = false;
     }
-
-    closeCancelModal();
-
-    if (!elements.detailModal.hidden && currentSelectedDetailReservation?.id === currentCancellingReservation.id) {
-      openDetailModal(allReservations[targetIdx]);
-    }
-
-    showFeedback(`✓ Cita #${currentCancellingReservation.id} cancelada. Horario liberado en el salón.`, 'error');
-    renderReservations();
   });
 
   // 13. ACCIONES DELEGADAS EN TARJETAS Y TABLA
@@ -1005,5 +1035,19 @@
   });
 
   // 15. INICIALIZACIÓN
-  renderReservations();
+  const loadReservations = async () => {
+    try {
+      const reservations = await apiRequest('/api/reservations');
+      saveStoredReservations(reservations);
+      renderReservations();
+    } catch (error) {
+      elements.cardsContainer.innerHTML = '';
+      elements.tableBody.innerHTML = '';
+      elements.empty.textContent = `No se pudieron cargar las citas: ${error.message}`;
+      elements.empty.hidden = false;
+      elements.feedback.textContent = '';
+    }
+  };
+
+  loadReservations();
 })();

@@ -6,9 +6,7 @@
 
 ## 2. Descripción
 
-Aplicación web para que los clientes consulten servicios capilares, creen una cuenta y gestionen sus citas. El personal peluquero puede indicar sus zonas de trabajo; estas se guardan en MongoDB y se usan para mostrar profesionales relacionados con el servicio y la zona elegidos. El administrador gestiona usuarios, peluqueros y servicios, y puede atender las solicitudes de cita.
-
-> **Nota de alcance:** en la versión actual, usuarios y servicios se gestionan mediante la API con MongoDB. La agenda de reservas del frontend todavía utiliza almacenamiento local del navegador; no se debe describir como persistida en MongoDB hasta que exista esa integración.
+Aplicación web para que los clientes consulten servicios capilares, creen una cuenta y gestionen sus citas. Las reservas se guardan en MongoDB; clientes y peluqueros consultan su agenda desde la API y el peluquero puede cancelar las citas que tiene asignadas. El personal peluquero también indica sus zonas de trabajo, y el administrador gestiona usuarios, peluqueros y servicios.
 
 ## 3. Integrantes
 
@@ -111,6 +109,9 @@ Todas las rutas indicadas usan el prefijo `/api`. Las rutas protegidas requieren
 | `POST`   | `/api/auth/register`                  | Público              | Registrar un cliente.                                                    |
 | `POST`   | `/api/auth/login`                     | Público              | Iniciar sesión y obtener JWT.                                           |
 | `GET`    | `/api/dashboard/stats`                | Usuario autenticado   | Consultar estadísticas del panel.                                       |
+| `GET`    | `/api/reservations`                   | Usuario autenticado   | Listar las propias reservas, las citas asignadas al peluquero o todas para el administrador. |
+| `POST`   | `/api/reservations`                   | Usuario autenticado   | Guardar una reserva en MongoDB, validando servicio, peluquero y disponibilidad. |
+| `PATCH`  | `/api/reservations/:id/cancel`        | Cliente, peluquero asignado o administrador | Cancelar una reserva pendiente o confirmada. |
 | `GET`    | `/api/services`                       | Usuario autenticado   | Listar y filtrar servicios activos.                                      |
 | `POST`   | `/api/services`                       | Administrador         | Crear un servicio.                                                       |
 | `PUT`    | `/api/services/:id`                   | Administrador         | Actualizar un servicio.                                                  |
