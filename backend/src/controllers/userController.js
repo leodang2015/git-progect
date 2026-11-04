@@ -42,8 +42,7 @@ const getStylistsByService = async (req, res) => {
     const stylists = await User.find({
       role: 'stylist',
       status: 'active',
-      serviceIds: service._id,
-      workAreas: { $exists: true, $ne: [] }
+      serviceIds: service._id
     }).select('name specialty workAreas').sort({ name: 1 }).lean();
 
     return res.json({

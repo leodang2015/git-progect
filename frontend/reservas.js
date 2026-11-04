@@ -511,10 +511,16 @@
   const populateEditStylists = (selectedId = 'sty-any') => {
     if (!elements.editStylist) return;
     const selectedArea = elements.editHairLength?.value || '';
+    if (!selectedArea) {
+      elements.editStylist.innerHTML = editAvailableStylists.length
+        ? '<option value="" selected disabled>Seleccione primero una zona de trabajo</option>'
+        : '<option value="" selected disabled>No hay profesionales asignados a este servicio</option>';
+      return;
+    }
     const availableStylists = editAvailableStylists
       .filter(stylist => stylist.workAreas.includes(selectedArea));
     if (!availableStylists.length) {
-      elements.editStylist.innerHTML = '<option value="" selected disabled>No hay profesionales para este servicio</option>';
+      elements.editStylist.innerHTML = '<option value="" selected disabled>No hay profesionales para esta zona</option>';
       return;
     }
 
@@ -532,7 +538,9 @@
     elements.editHairLength.innerHTML = workAreas.length
       ? '<option value="" disabled selected>Seleccione una zona de trabajo</option>' +
         workAreas.map(area => `<option value="${escapeHtml(area)}">${escapeHtml(area)}</option>`).join('')
-      : '<option value="" disabled selected>No hay zonas registradas</option>';
+      : `<option value="" disabled selected>${editAvailableStylists.length
+        ? 'Los profesionales asignados no han registrado zonas'
+        : 'No hay zonas registradas para este servicio'}</option>`;
     if (workAreas.includes(selectedArea)) elements.editHairLength.value = selectedArea;
     populateEditStylists(selectedStylistId);
   };
@@ -566,6 +574,9 @@
         workAreas: Array.isArray(stylist.workAreas) ? stylist.workAreas : []
       }));
       populateEditWorkAreas(selectedArea, selectedStylistId);
+      if (editAvailableStylists.length && !editAvailableStylists.some(stylist => stylist.workAreas.length)) {
+        elements.editFormError.textContent = 'Hay profesionales asignados a este servicio, pero deben registrar sus zonas de trabajo antes de poder reservar.';
+      }
       editStylistsLoading = false;
     } catch (error) {
       if (requestId !== editStylistsRequestId) return;

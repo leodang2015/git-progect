@@ -479,9 +479,15 @@
     const populateStylists = (selectedId = 'sty-any') => {
       if (!stylistSelect) return;
       const selectedArea = hairLengthSelect?.value || '';
+      if (!selectedArea) {
+        stylistSelect.innerHTML = availableStylists.length
+          ? '<option value="" selected disabled>Seleccione primero una zona de trabajo</option>'
+          : '<option value="" selected disabled>No hay profesionales asignados a este servicio</option>';
+        return;
+      }
       const areaStylists = availableStylists.filter(stylist => stylist.workAreas.includes(selectedArea));
       if (!areaStylists.length) {
-        stylistSelect.innerHTML = '<option value="" selected disabled>No hay profesionales para este servicio</option>';
+        stylistSelect.innerHTML = '<option value="" selected disabled>No hay profesionales para esta zona</option>';
         return;
       }
 
@@ -498,7 +504,9 @@
       hairLengthSelect.innerHTML = workAreas.length
         ? '<option value="" disabled selected>Seleccione una zona de trabajo ▼</option>' +
           workAreas.map(area => `<option value="${escapeHtml(area)}">${escapeHtml(area)}</option>`).join('')
-        : '<option value="" disabled selected>No hay zonas registradas para este servicio</option>';
+        : `<option value="" disabled selected>${availableStylists.length
+          ? 'Los profesionales asignados no han registrado zonas'
+          : 'No hay zonas registradas para este servicio'}</option>`;
       if (workAreas.includes(selectedArea)) hairLengthSelect.value = selectedArea;
       populateStylists();
     };
@@ -525,6 +533,9 @@
           workAreas: Array.isArray(stylist.workAreas) ? stylist.workAreas : []
         }));
         populateWorkAreas(selectedArea);
+        if (availableStylists.length && !availableStylists.some(stylist => stylist.workAreas.length)) {
+          if (formError) formError.textContent = 'Hay profesionales asignados a este servicio, pero deben registrar sus zonas de trabajo antes de poder reservar.';
+        }
       } catch (error) {
         if (requestId !== professionalsRequestId) return;
         if (formError) formError.textContent = error.message;
