@@ -8,7 +8,7 @@
 
 Aplicación web para que los clientes consulten servicios capilares, creen una cuenta y gestionen sus citas. El personal peluquero puede indicar sus zonas de trabajo; estas se guardan en MongoDB y se usan para mostrar profesionales relacionados con el servicio y la zona elegidos. El administrador gestiona usuarios, peluqueros y servicios, y puede atender las solicitudes de cita.
 
-> **Nota de alcance:** en la versión actual, usuarios y servicios se gestionan mediante la API con MongoDB. La agenda de reservas del frontend todavía utiliza almacenamiento local del navegador; no se debe describir como persistida en MongoDB hasta que exista esa integración.
+> **Nota de alcance:** las cuentas, asignaciones de servicios a peluqueros y zonas de trabajo se gestionan mediante la API con MongoDB. El catálogo visible de servicios y su panel administrativo todavía usan `localStorage`, aunque la API incluye endpoints para administrar servicios. La agenda de reservas también utiliza almacenamiento local del navegador; las citas no se sincronizan entre dispositivos.
 
 ## 3. Integrantes
 
@@ -115,7 +115,7 @@ Todas las rutas indicadas usan el prefijo `/api`. Las rutas protegidas requieren
 | `POST` | `/api/services` | Administrador | Crear un servicio. |
 | `PUT` | `/api/services/:id` | Administrador | Actualizar un servicio. |
 | `DELETE` | `/api/services/:id` | Administrador | Eliminar un servicio si no tiene reservas asociadas. |
-| `GET` | `/api/users/stylists?serviceName=...` | Usuario autenticado | Listar peluqueros activos asignados al servicio y sus zonas registradas. |
+| `GET` | `/api/users/stylists?serviceName=...` | Usuario autenticado | Listar peluqueros activos asignados al servicio, incluidas sus zonas (pueden estar vacías). El nombre debe coincidir con un servicio de MongoDB. |
 | `GET` | `/api/users/me` | Peluquero autenticado | Consultar el propio perfil. |
 | `PUT` | `/api/users/me/work-areas` | Peluquero autenticado | Guardar las zonas de trabajo propias. |
 | `GET` | `/api/users` | Administrador | Listar, buscar y filtrar usuarios. |
@@ -125,7 +125,16 @@ Todas las rutas indicadas usan el prefijo `/api`. Las rutas protegidas requieren
 
 La respuesta, validaciones y permisos detallados están documentados en [`backend/README.md`](./backend/README.md).
 
-## 9. Historias de usuario
+## 9. Flujo de reserva
+
+1. Selecciona el servicio del catálogo.
+2. Selecciona una zona de trabajo disponible para ese servicio.
+3. Selecciona un estilista de los que atienden esa zona, o deja la opción de primer profesional disponible.
+4. Completa la fecha y el horario.
+
+Para aparecer en la lista, el estilista debe estar activo, tener asignado el servicio exacto en Administración → Usuarios y haber guardado al menos una zona en su perfil. Si tiene el servicio asignado pero no ha registrado zonas, la reserva no puede ofrecerlo para una zona.
+
+## 10. Historias de usuario
 
 Historias resumidas según las funcionalidades disponibles. Completa o reemplaza esta lista con los identificadores y redacción aprobados en el tablero del equipo:
 
@@ -136,13 +145,13 @@ Historias resumidas según las funcionalidades disponibles. Completa o reemplaza
 - **Administrador:** quiero gestionar usuarios y asignar servicios a los peluqueros.
 - **Administrador:** quiero administrar el catálogo de servicios y gestionar las solicitudes de cita.
 
-## 10. GitHub Project
+## 11. GitHub Project
 
 - **Repositorio:** [leodang2015/git-progect](https://github.com/leodang2015/git-progect)
 - **GitHub Project:** <https://github.com/users/leodang2015/projects/1>
 - **Organización del tablero:** documentar columnas, issues asignados y estado final del Sprint 3.
 
-## 11. Sprint 3 y GitHub Actions
+## 12. Sprint 3 y GitHub Actions
 
 ### Objetivo
 
@@ -189,7 +198,7 @@ Esto describe un problema de historiales/repositorios no relacionados; no necesa
 - El equipo reportó Issues cerrados en el hito Sprint 3; adjuntar una captura o enlace al Project como evidencia de entrega.
 - El equipo reportó una incidencia de historiales no relacionados y la necesidad de crear otro clon; adjuntar evidencia y documentar el resultado final de la recuperación.
 
-## 12. Evidencias de entrega
+## 13. Evidencias de entrega
 
 Añade capturas legibles o enlaces permanentes del repositorio. Evita mostrar tokens, contraseñas, URI privadas u otros secretos.
 
